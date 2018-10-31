@@ -1,0 +1,24 @@
+[package]
+name = "ecc"
+version = "0.1.0"
+authors = ["maxtnt <ttg1256@naver.com>"]
+
+[dependencies]
+serde = "1.0.78"
+serde_derive = "1.0.78"
+serde_json = "1.0.27"
+hex = "0.3.2"
+exonum_sodiumoxide = "0.0.20"
+rust-crypto = "0.2.36"
+rand = "0.5.5"
+num = "0.2.0"
+num-bigint = { version = "0.2.0", features = ["rand"] }
+bit-vec = "0.5.0"
+byteorder = "1.2.6"
+regex = "1.0.5"
+nalgebra = "0.16.4"
+rust-base58 = "0.0.4"
+lazy_static = "1.1.0"
+enum-map = "0.4.1"
+rayon = "1.0.2"
+chrono = { version = "0.4", features = ["serde"] }

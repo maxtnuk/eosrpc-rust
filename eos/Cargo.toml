@@ -1,0 +1,8 @@
+[package]
+name = "eos"
+version = "0.1.0"
+authors = ["maxtnt <ttg1256@naver.com>"]
+
+[dependencies]
+eos-api = { path = "../eos-api" }
+ecc = { path = "../eos-ecc" }
