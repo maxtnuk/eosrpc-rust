@@ -1,5 +1,5 @@
 [package]
-name = "eos-api"
+name = "eos_api"
 version = "0.1.0"
 authors = ["maxtnt <ttg1256@naver.com>"]
 

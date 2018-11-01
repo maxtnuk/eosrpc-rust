@@ -22,16 +22,17 @@ mod test;
 
 type Method=HashMap<String,Argu>;
 
-#[derive(Serialize, Deserialize,Debug)]
+#[derive(Serialize, Deserialize,Debug,Clone)]
 struct Argu{
     #[serde(default)]
     brief: String,
     params: Value,
     results: Value,
 }
+#[derive(Clone)]
 pub struct EosApi{
     def: HashMap<String,Method>,
-    optional: Config
+    pub optional: Config
 }
 impl EosApi{
     pub fn new(in_config: Option<Config>)->Self{
@@ -59,17 +60,20 @@ impl EosApi{
         let mut default_config= Config::default();
         default_config.set("httpEndpoint","http://127.0.0.1:8888").unwrap();
         default_config.set("verbose",false).unwrap();
+        default_config.set("debug",false).unwrap();
+        default_config.set("broadcast",true).unwrap();
+        default_config.set("sign",true).unwrap();
         
         EosApi{
             def: apis,
             optional: in_config.unwrap_or(default_config)
         }
     }
-    fn http_request(&self,name: String,body: &serde_json::Value) -> Result<Value, Error> {
+    pub fn http_request(&self,name: &str,body: &serde_json::Value) -> Result<Value, Error> {
         let httpurl=self.optional.get::<String>("httpEndpoint").unwrap();
         let mut url=String::new();
         for (k,v) in self.def.iter(){
-            if v.get(&name).is_some() {
+            if v.get(&name.to_string()).is_some() {
                 url=format!("{}/{}/{}",httpurl,k,name);
                 break; 
             }
@@ -85,7 +89,7 @@ impl EosApi{
 }
 pub fn create_transaction<F>(api: &EosApi,expire_sec: Option<i64>,callback: F)
 where F: Fn(Value){
-    let get_info=api.http_request("get_info".to_string(),&Value::Null).unwrap();
+    let get_info=api.http_request("get_info",&Value::Null).unwrap();
                  
     let head_block_time=get_info["head_block_time"].as_str().unwrap().to_owned();
     let chain_date = DateTime::parse_from_rfc3339((head_block_time+"Z").as_str()).unwrap();
@@ -95,7 +99,7 @@ where F: Fn(Value){
     let block_param=json!({
         "block_num_or_id": irr_block
     });
-    let block=api.http_request("get_block".to_string(),&block_param).unwrap();
+    let block=api.http_request("get_block",&block_param).unwrap();
     
     let expiration = match expire_sec{
         Some(e) =>{

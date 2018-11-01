@@ -11,6 +11,6 @@ members = [
 ]
 
 [dependencies]
-eos-api = { path = "eos-api" }
+eos_api = { path = "eos-api" }
 ecc = { path = "eos-ecc" }
 eos = { path = "eos" }
