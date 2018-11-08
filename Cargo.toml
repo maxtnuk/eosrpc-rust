@@ -1,5 +1,5 @@
 [package]
-name = "rust-eos"
+name = "eosrpc-rust"
 version = "0.1.0"
 authors = ["maxtnt <ttg1256@naver.com>"]
 
@@ -11,6 +11,6 @@ members = [
 ]
 
 [dependencies]
-eos_api = { path = "eos-api" }
-ecc = { path = "eos-ecc" }
-eos = { path = "eos" }
+eos_api = { path = "eos-api" ,version = "0.1.0"}
+ecc = { path = "eos-ecc" ,version = "0.1.0"}
+eos = { path = "eos" ,version = "0.1.0"}

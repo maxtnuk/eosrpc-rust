@@ -4,7 +4,7 @@ fn params_test(){
     use create_transaction;
     
     let test=EosApi::new(None);
-    create_transaction(&test,Some(60),|x|{
+    test.create_transaction(Some(60),|x|{
         println!("{:?}",x);
     })
 }

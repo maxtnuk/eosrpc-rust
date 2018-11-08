@@ -1,0 +1,25 @@
+{
+    "compression": "none",
+    "transaction": {
+        "expiration": "2018-08-01T06:11:23",
+        "ref_block_num": 10855,
+        "ref_block_prefix": 473148127,
+        "max_net_usage_words": 0,
+        "max_cpu_usage_ms": 0,
+        "delay_sec": 0,
+        "context_free_actions": [],
+        "actions": [{
+            "account": "eosio.token",
+            "name": "transfer",
+            "authorization": [{
+                "actor": "fromaccount",
+                "permission": "active"
+            }],
+            "data": "0000000000ea305500000000487a2b9d102700000000000004454f53000000001163726561746564206279206e6f70726f6d"
+        }],
+        "transaction_extensions": [],
+        "signatures": null,
+        "context_free_data": []
+    },
+    "signatures": ["SIG_K1_JwLVG5pRdhvLfJGWkDEBPa7wdLbNeqeRFdvFrKDEryahSwCRpPb75m4auZh8frq6cXsm3dHit8GMbmuuBWxEjH"]
+}

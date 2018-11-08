@@ -1,26 +1,42 @@
 extern crate serde;
-#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 extern crate reqwest;
-extern crate chrono;
-extern crate config;
 
 use serde_json::{Value};
 use std::fs::{self,File};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use config::{Config};
 
-use chrono::prelude::*;
-use chrono::Duration;
 use reqwest::Error;
 
 #[cfg(test)]
 mod test;
 
 type Method=HashMap<String,Argu>;
+
+#[derive(Clone)]
+pub struct ApiConfig<'a>{
+    pub http_endpoint:&'a str,
+    pub verbose:bool,
+    pub debug:bool,
+    pub broadcast:bool,
+    pub sign:bool,
+    pub chain_id:&'a str
+}
+impl<'a> Default for ApiConfig<'a> {
+    fn default() -> Self { 
+        ApiConfig {
+            http_endpoint:"http://127.0.0.1:8888",
+            verbose:false,
+            debug:false,
+            broadcast:true,
+            sign:true,
+            chain_id: "cf057bbfb72640471fd910bcb67639c22df9f92470936cddc1ade0e2f2e7dc4f"
+        }
+    }
+}
 
 #[derive(Serialize, Deserialize,Debug,Clone)]
 struct Argu{
@@ -30,18 +46,18 @@ struct Argu{
     results: Value,
 }
 #[derive(Clone)]
-pub struct EosApi{
+pub struct EosApi<'a>{
     def: HashMap<String,Method>,
-    pub optional: Config
+    pub optional: ApiConfig<'a>
 }
-impl EosApi{
-    pub fn new(in_config: Option<Config>)->Self{
+impl<'a> EosApi<'a>{
+    pub fn new(config: ApiConfig<'a>)->Self{
         let mut apis :HashMap<String,Method>= HashMap::new();
         
-        for entry in fs::read_dir("src/apis").unwrap(){
+        for entry in fs::read_dir("./eos-api/src/apis").unwrap(){
             let entry =entry.unwrap();
             let version_str=entry.path().as_path().iter()
-                            .skip(2).collect::<PathBuf>()
+                            .skip(4).collect::<PathBuf>()
                             .to_string_lossy().into_owned();
             for api_file in fs::read_dir(entry.path()).unwrap(){
                 let api_file =api_file.unwrap();
@@ -57,20 +73,14 @@ impl EosApi{
                 apis.insert(api_path,u);
             }
         }
-        let mut default_config= Config::default();
-        default_config.set("httpEndpoint","http://127.0.0.1:8888").unwrap();
-        default_config.set("verbose",false).unwrap();
-        default_config.set("debug",false).unwrap();
-        default_config.set("broadcast",true).unwrap();
-        default_config.set("sign",true).unwrap();
         
         EosApi{
             def: apis,
-            optional: in_config.unwrap_or(default_config)
+            optional: config
         }
     }
     pub fn http_request(&self,name: &str,body: &serde_json::Value) -> Result<Value, Error> {
-        let httpurl=self.optional.get::<String>("httpEndpoint").unwrap();
+        let httpurl=self.optional.http_endpoint;
         let mut url=String::new();
         for (k,v) in self.def.iter(){
             if v.get(&name.to_string()).is_some() {
@@ -78,7 +88,7 @@ impl EosApi{
                 break; 
             }
         };
-        println!("url: {}",url);
+        //println!("url: {}",url);
         let res = reqwest::Client::new()
             .post(&url)
             .json(body)
@@ -87,42 +97,3 @@ impl EosApi{
         Ok(res)
     }
 }
-pub fn create_transaction<F>(api: &EosApi,expire_sec: Option<i64>,callback: F)
-where F: Fn(Value){
-    let get_info=api.http_request("get_info",&Value::Null).unwrap();
-                 
-    let head_block_time=get_info["head_block_time"].as_str().unwrap().to_owned();
-    let chain_date = DateTime::parse_from_rfc3339((head_block_time+"Z").as_str()).unwrap();
-    
-    let irr_block=get_info["last_irreversible_block_num"].as_u64().unwrap();
-    
-    let block_param=json!({
-        "block_num_or_id": irr_block
-    });
-    let block=api.http_request("get_block",&block_param).unwrap();
-    
-    let expiration = match expire_sec{
-        Some(e) =>{
-            chain_date+Duration::seconds(e*1000)
-        },
-        None =>{
-            chain_date+Duration::seconds(60*1000)
-        }
-    };
-    let ref_block_num = irr_block & 0xFFFF;
-    
-    let block_info = json!({
-        "expiration": expiration.to_rfc3339(),
-        "ref_block_num": ref_block_num,
-        "ref_block_prefix": block["ref_block_prefix"].as_str().unwrap(),
-        "max_net_usage_words": 0,
-        "max_cpu_usage_ms": 0,
-        "delay_sec": 0,
-        "context_free_actions": [],
-        "actions": [],
-        "signatures": [],
-        "transaction_extensions": []
-    });
-                     
-    callback(block_info);  
-} 

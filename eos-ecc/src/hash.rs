@@ -4,6 +4,7 @@ use crypto::hmac::Hmac;
 use crypto::sha2::{Sha256,Sha512};
 use crypto::ripemd160::Ripemd160;
 use crypto::mac::Mac;
+use hex;
 
 type BoxData = Box<[u8]>;
 
@@ -44,4 +45,7 @@ pub fn hmac_sha256<'a>(buffer: &[u8], key: &[u8])-> &'a [u8]{
     let mut result: BoxData=Box::new([0;32]);
     hasher.raw_result(&mut result);
     Box::leak(result)
+}
+pub fn to_hex(data: &[u8])->String{
+    hex::encode(data)
 }

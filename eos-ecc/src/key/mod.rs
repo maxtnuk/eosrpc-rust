@@ -15,6 +15,7 @@ use std::default::Default;
 type ResultParse=Result<(PrivateKey,String,String),Errortype>;
 type ResultPoint = Result<EcPoint,Errortype>;
 
+#[derive(Clone)]
 pub struct PublicKey{
     pub curveparam: CurveParam,
     mdata: EcPoint
@@ -157,6 +158,7 @@ impl PublicKey{
     }
 }
 
+#[derive(Clone)]
 pub struct PrivateKey{
     mprivate_key: BigInt,
     pub curveparam: CurveParam

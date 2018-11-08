@@ -1,7 +1,7 @@
 [package]
 name = "ecc"
 version = "0.1.0"
-authors = ["maxtnt <ttg1256@naver.com>"]
+authors = ["maxtnuk <maxtnuk@gmail.com>"]
 
 [dependencies]
 serde = "1.0.78"
