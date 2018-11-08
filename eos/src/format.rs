@@ -35,16 +35,16 @@ pub fn encode_name(name: String,little_endian: bool)->Result<String,Errortype>{
         let mut bitstr=String::new();
         for i in 0..=12{
             let i_char=name.chars().nth(i).unwrap_or(' ');
-            let c = if i < name.len() { 
+            let c = if i < name.len() {
             let char_result= charidx(i_char);
                 if char_result.is_none(){
                     return Err(Errortype::MakeFail)
                 }
                 char_result.unwrap()
             } else {0};
-            
+
             let bit_len= if i < 12 {5} else {4};
-            
+
             let bits = format!("{:b}",c);
             //println!("{}",bits);
             if bits.len() > bit_len{
@@ -56,10 +56,10 @@ pub fn encode_name(name: String,little_endian: bool)->Result<String,Errortype>{
         }
         let value=ulong(bitstr,Some(2));
         //println!("{}",value);
-        
+
         let mut lehex=String::new();
         let bytes= if little_endian {value.to_bytes_le().1} else {value.to_bytes_be().1};
-        
+
         for b in bytes.iter(){
             let n = format!("{:x}",b);
             //println!("{}",n);
@@ -70,24 +70,24 @@ pub fn encode_name(name: String,little_endian: bool)->Result<String,Errortype>{
 }
 pub fn decode_name(value: String,little_endian: bool)->String{
     let value=ulong(value,None);
-    
+
     let mut behex=String::new();
     let bytes= if little_endian {value.to_bytes_le().1} else {value.to_bytes_be().1};
-    
+
     for b in bytes.iter(){
             let n = format!("{:x}",b);
             behex+=&format!("{}{}",if n.len() == 1 {"0"} else {""},n);
     }
     let t: String=iter::repeat('0').take(16 - behex.len()).collect();
     behex+=&t;
-    
+
     let fivebits=0x1f_u32.to_bigint().unwrap();
     let fourbits=0x0f_u32.to_bigint().unwrap();
     let bevalue=ulong(behex,Some(16));
-    
+
     let mut result=String::new();
     let mut tmp = bevalue.clone();
-    
+
     for i in 0..=12{
         let idx=(tmp.clone() & if i == 0 {fourbits.clone()} else {fivebits.clone()}).to_usize().unwrap();
         tmp=tmp >> (if i==0 {4}else{5});
@@ -102,16 +102,16 @@ pub fn decimal_string(value: String)->String{
     let mut value= value;
     let re = Regex::new(r"^-").unwrap();
     let neg = re.is_match(value.as_str());
-    
+
     if neg {
         value.remove(0);
     }
     if value.chars().nth(0).unwrap() == '.'{
         value.insert(0,'0');
     }
-    
+
     let mut parts: Vec<String>=value.split('.').map(|x| x.to_string()).collect();
-    
+
     if parts.len() ==2{
         let suf = Regex::new(r"0+$").unwrap();
         parts[1] = suf.replace_all(parts[1].as_str(), "").into_owned();
@@ -119,13 +119,13 @@ pub fn decimal_string(value: String)->String{
             parts.pop();
         }
     }
-    
+
     let rezero = Regex::new(r"^0*").unwrap();
     parts[0] = rezero.replace_all(parts[0].as_str(), "").into_owned();
     if parts[0].as_str() == ""{
         parts[0]="0".to_string();
     }
-    
+
     if neg {"-"}else{""}.to_owned() + &parts.join(".")
 }
 pub fn decimal_pad(num: String,precision: Option<usize>)->String{
@@ -138,7 +138,7 @@ pub fn decimal_pad(num: String,precision: Option<usize>)->String{
     let precision=precision.unwrap();
     if parts.len()==1{
         if precision == 0{
-            parts[0].clone()   
+            parts[0].clone()
         }else{
             let zeros: String=iter::repeat('0').take(precision).collect();
             format!("{}.{}",parts[0],zeros)
@@ -159,15 +159,15 @@ pub fn decimal_unimply(value: String,precision: Option<usize>)->String{
     if neg{
         value.remove(0);
     }
-    
+
     let precision= precision.unwrap();
     let pad = precision as isize -value.len() as isize;
-    
+
     if pad > 0{
         let zeros: String=iter::repeat('0').take(pad as usize).collect();
         value = format!("{}{}",zeros,value);
     }
-    
+
     let dotidx= value.len()-precision;
     let (f,s)=value.split_at(dotidx);
     let result = format!("{}.{}",f.to_owned(),s.to_owned());
@@ -206,7 +206,7 @@ pub fn parse_asset(text: String)->Asset{
     //let parts: Vec<String>=text.split('.').map(|x| x.to_string()).collect();
     //let amount_raw=parts[0].clone();
     let amount_match = Regex::new(r"^(-?[0-9]+(\.[0-9]+)?)( |$)").unwrap();
-    let amount = 
+    let amount =
     match amount_match.captures(text.as_str()){
         Some(e) =>{
             Some(e.get(1).unwrap().as_str().to_owned())
@@ -216,9 +216,9 @@ pub fn parse_asset(text: String)->Asset{
         }
     };
     println!("amount {:?}",amount);
-    
+
     let precision_match = Regex::new(r"(^| )([0-9]+),([A-Z]+)(@|$)").unwrap();
-    
+
     let precision_symbol = match precision_match.captures(text.as_str()){
         Some(e) =>{
             let r: usize =e.get(2).unwrap().as_str().parse().unwrap();
@@ -232,13 +232,13 @@ pub fn parse_asset(text: String)->Asset{
     }else{
          None
     };
-    
+
     let precision =if precision_symbol.is_some(){
         precision_symbol
     }else{
         precision_amount
     };
-    
+
     let symbol_match = Regex::new(r"(^| |,)([A-Z]+)(@|$)").unwrap();
     let symbol=match symbol_match.captures(text.as_str()){
         Some(e)=>{
@@ -249,7 +249,7 @@ pub fn parse_asset(text: String)->Asset{
             None
         }
     };
-    
+
     let contractraw=text.split('@').nth(1).unwrap_or("");
     let contract_match = Regex::new(r"^[a-z0-5]+(\.[a-z0-5]+)*$").unwrap();
     let contract = if contract_match.is_match(contractraw){
@@ -257,7 +257,7 @@ pub fn parse_asset(text: String)->Asset{
     }else{
         None
     };
-    
+
     Asset{
         amount: amount,
         precision: precision,
