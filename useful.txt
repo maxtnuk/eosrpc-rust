@@ -1,3 +1,0 @@
-http://vestera.as/json_typegen/
-https://steemit.com/eos/@eostribe/jxcqf-eos
-https://rusty-json.herokuapp.com/
