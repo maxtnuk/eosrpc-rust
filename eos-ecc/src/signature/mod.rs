@@ -30,19 +30,34 @@ impl Signature {
     pub fn get_ecsig(&self) -> EcSignature {
         self.sig.clone()
     }
-    pub fn verify(sig: &EcSignature, data: Data, pubkey: &PublicKey) -> bool {
-        let hashed = hash::sha256(data.as_slice()).to_vec();
-        Self::verifyhash(sig, hashed, pubkey)
+    pub fn verify<'a, T>(sig: &EcSignature, data: T, pubkey: &PublicKey) -> bool
+    where
+        T: Into<Data<'a>>,
+    {
+        let data = data.into();
+        let hashed = hash::sha256(data);
+        Self::verifyhash(sig, hashed.to_vec(), pubkey)
     }
-    pub fn verifyhash(sig: &EcSignature, hashed: Data, pubkey: &PublicKey) -> bool {
+    pub fn verifyhash<'a, T>(sig: &EcSignature, hashed: T, pubkey: &PublicKey) -> bool
+    where
+        T: Into<Data<'a>>,
+    {
         ecdsa::verify_with_pub(hashed, sig, &pubkey)
     }
-    fn recover(&self, data: Data) -> Result<PublicKey, Errortype> {
-        let hashed = hash::sha256(data.as_slice()).to_vec();
-        self.recoverhash(hashed)
+    fn recover<'a, T>(&self, data: T) -> Result<PublicKey, Errortype>
+    where
+        T: Into<Data<'a>>,
+    {
+        let data = data.into();
+        let hashed = hash::sha256(data);
+        self.recoverhash(hashed.to_vec())
     }
 
-    fn recoverhash(&self, hashed: Data) -> Result<PublicKey, Errortype> {
+    fn recoverhash<'a, T>(&self, hashed: T) -> Result<PublicKey, Errortype>
+    where
+        T: Into<Data<'a>>,
+    {
+        let hashed = hashed.into();
         let e = EcTools::vec_to_integer(hashed);
 
         let mut i2 = self.i.clone() - 27.to_bigint().unwrap();
@@ -59,27 +74,27 @@ impl Signature {
             }
         }
     }
-    fn to_vec(&self) -> Data {
+    fn to_vec<'a>(&self) -> Data<'a> {
         let i_u8 = self.i.to_u8().unwrap();
 
         let vec_r = EcTools::integer_to_vec(self.sig.r.clone(), 32);
         let vec_s = EcTools::integer_to_vec(self.sig.s.clone(), 32);
 
-        let mut before_data: Data = vec_r.iter().chain(vec_s.iter()).map(|x| *x).collect();
+        let mut before_data: Vec<u8> = vec_r.iter().chain(vec_s.iter()).map(|x| *x).collect();
         before_data.insert(0, i_u8);
-        before_data
+        Data::new(before_data)
     }
-    pub fn sign<T>(data: T, pvkey: &PrivateKey) -> Self
+    pub fn sign<'a, T>(data: T, pvkey: &PrivateKey) -> Self
     where
-        T: Into<Data>,
+        T: Into<Data<'a>>,
     {
         let data = data.into();
-        let hashed = hash::sha256(data.as_slice());
-        Self::signhash(hashed, pvkey)
+        let hashed = hash::sha256(data);
+        Self::signhash(hashed.to_vec(), pvkey)
     }
-    pub fn signhash<T>(hashed: T, pvkey: &PrivateKey) -> Self
+    pub fn signhash<'a, T>(hashed: T, pvkey: &PrivateKey) -> Self
     where
-        T: Into<Data>,
+        T: Into<Data<'a>>,
     {
         let hashed = hashed.into();
         let mut nonce = 0;

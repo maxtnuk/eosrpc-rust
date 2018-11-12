@@ -24,24 +24,25 @@ impl EcSignature {
             curve: curve,
         }
     }
-    pub fn to_compact(&self, i: u8, compressed: bool) -> Data {
+    pub fn to_compact<'a>(&self, i: u8, compressed: bool) -> Data<'a> {
         let mut i = i;
         if compressed {
             i += 4;
         }
         i += 27;
-        let mut ebuf: Data = Vec::new();
+        let mut ebuf: Vec<u8> = Vec::new();
         ebuf.write_u8(i).unwrap();
         let vec_r = EcTools::integer_to_vec(self.r.clone(), 32);
         let vec_s = EcTools::integer_to_vec(self.s.clone(), 32);
 
-        ebuf.par_iter()
+        let result: Vec<u8> = ebuf.par_iter()
             .chain(vec_r.par_iter())
             .chain(vec_s.par_iter())
             .map(|x| *x)
-            .collect()
+            .collect();
+        Data::new(result)
     }
-    pub fn to_der(&self) -> Data {
+    pub fn to_der<'a>(&self) -> Data<'a> {
         let mut vec_r = EcTools::integer_to_vec(self.r.clone(), 32);
         let mut vec_s = EcTools::integer_to_vec(self.s.clone(), 32);
 
@@ -52,7 +53,7 @@ impl EcSignature {
         vec_s.insert(0, s_len);
         vec_s.insert(0, 0x02);
 
-        let mut before_data: Data = vec_r
+        let mut before_data: Vec<u8> = vec_r
             .par_iter()
             .chain(vec_s.par_iter())
             .map(|x| *x)
@@ -60,24 +61,26 @@ impl EcSignature {
         let before_len = before_data.len() as u8;
         before_data.insert(0, before_len);
         before_data.insert(0, 0x30);
-        before_data
+        Data::new(before_data)
     }
-    pub fn to_script_signature(&self, hashtype: u8) -> Data {
-        let mut hashtypebuffer: Data = Vec::new();
+    pub fn to_script_signature<'a>(&self, hashtype: u8) -> Data<'a> {
+        let mut hashtypebuffer: Vec<u8> = Vec::new();
         hashtypebuffer.write_u8(hashtype).unwrap();
-        self.to_der()
+        let result: Vec<u8> = self.to_der()
+            .to_vec()
             .par_iter()
             .chain(hashtypebuffer.par_iter())
             .map(|x| *x)
-            .collect()
+            .collect();
+        Data::new(result)
     }
     //{compressed,i,signature}
-    pub fn parse_compact(
-        buffer: Data,
+    pub fn parse_compact<'a>(
+        buffer: Data<'a>,
         ctype: Option<CurveType>,
     ) -> Result<(bool, u8, Self), Errortype> {
         if buffer.len() != 65 {
-            Err(Errortype::WronLength)
+            Err(Errortype::WrongLength)
         } else {
             let mut i = buffer[0] - 27;
             if i == i & 7 {
@@ -97,7 +100,7 @@ impl EcSignature {
             }
         }
     }
-    pub fn from_der(buffer: Data, ctype: Option<CurveType>) -> Self {
+    pub fn from_der<'a>(buffer: Data<'a>, ctype: Option<CurveType>) -> Self {
         assert!(buffer[0] == 0x30, "Not der sequence");
         assert!(
             buffer[1] == buffer.len() as u8 - 2,
@@ -126,8 +129,8 @@ impl EcSignature {
         );
         Self::new(r, s, ctype)
     }
-    pub fn parse_script_signature(
-        buffer: Data,
+    pub fn parse_script_signature<'a>(
+        buffer: Data<'a>,
         ctype: Option<CurveType>,
     ) -> Result<(Self, u8), Errortype> {
         let hashtype = buffer[buffer.len() - 1];

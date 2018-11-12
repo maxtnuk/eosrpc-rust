@@ -1,0 +1,6 @@
+[package]
+name = "eos_type"
+version = "0.1.0"
+authors = ["maxtnuk <matnuk@gmail.com>"]
+
+[dependencies]

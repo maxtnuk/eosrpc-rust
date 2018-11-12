@@ -8,9 +8,11 @@ members = [
     "eos-api",
     "eos-ecc",
     "eos",
+    "eos-type"
 ]
 
 [dependencies]
 eos_api = { path = "eos-api" ,version = "0.1.0"}
 ecc = { path = "eos-ecc" ,version = "0.1.0"}
 eos = { path = "eos" ,version = "0.1.0"}
+eos_type = { path = "eos-type" ,version = "0.1.0"}

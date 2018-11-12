@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["maxtnuk <maxtnuk@gmail.com>"]
 
 [dependencies]
-eos_api = { path = "../eos-api" ,version = "0.1.0"} 
+eos_api = { path = "../eos-api" ,version = "0.1.0"}
+eos_type = { path = "../eos-type" ,version = "0.1.0"}
 ecc = { path = "../eos-ecc" }
 serde = "1.0.78"
 serde_derive = "1.0.78"
@@ -14,4 +15,3 @@ bincode = "1.0.1"
 regex = "1.0.5"
 num = "0.2.0"
 num-bigint = "0.2.0"
-

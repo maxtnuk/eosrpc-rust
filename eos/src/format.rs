@@ -38,7 +38,10 @@ pub fn encode_name(name: String,little_endian: bool)->Result<String,Errortype>{
             let c = if i < name.len() {
             let char_result= charidx(i_char);
                 if char_result.is_none(){
-                    return Err(Errortype::MakeFail)
+                    return Err(Errortype::MakeFail{
+                        who: "format string".to_string(),
+                        content: None
+                    })
                 }
                 char_result.unwrap()
             } else {0};

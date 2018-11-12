@@ -13,9 +13,9 @@ use key::primtool::modinverse;
 use std::sync::mpsc::channel;
 use std::thread;
 
-pub fn deterministic_generate_k<F>(
+pub fn deterministic_generate_k<'a, F>(
     curve: &CurveParam,
-    hashed: Data,
+    hashed: Data<'a>,
     d: BigInt,
     mut checksig: F,
     nonce: i64,
@@ -27,44 +27,44 @@ where
         let zeros = vec![0u8; nonce as usize];
         let mut hashed = hashed;
         hashed.extend(zeros);
-        hash::sha256(hashed.as_slice()).to_vec()
+        hash::sha256(hashed).to_vec()
     } else {
         hashed.to_vec()
     };
     if in_hash.len() != 32 {
-        Err(Errortype::WronLength)
+        Err(Errortype::WrongLength)
     } else {
 
         let x = EcTools::integer_to_vec(d, 32);
-        let mut k = vec![0u8; 32];
-        let mut v = vec![1u8; 32];
+        let mut k = Data::new(vec![0u8; 32]);
+        let mut v = Data::new(vec![1u8; 32]);
 
-        let mut d_step_buffer = v.clone();
+        let mut d_step_buffer = v.to_vec();
         d_step_buffer.extend_from_slice(&[0u8]);
         d_step_buffer.extend(x.clone());
         d_step_buffer.extend(in_hash.clone());
-        k = hash::hmac_sha256(d_step_buffer.as_slice(), k.as_slice()).to_vec();
+        k = hash::hmac_sha256(Data::new(d_step_buffer), k);
 
-        v = hash::hmac_sha256(v.as_slice(), k.as_slice()).to_vec();
+        v = hash::hmac_sha256(v, k.clone());
 
-        let mut f_step_buffer = v.clone();
+        let mut f_step_buffer = v.to_vec();
         f_step_buffer.extend_from_slice(&[1u8]);
         f_step_buffer.extend(x.clone());
         f_step_buffer.extend(in_hash.clone());
-        k = hash::hmac_sha256(f_step_buffer.as_slice(), k.as_slice()).to_vec();
+        k = hash::hmac_sha256(Data::new(f_step_buffer), k);
 
-        v = hash::hmac_sha256(v.as_slice(), k.as_slice()).to_vec();
-        v = hash::hmac_sha256(v.as_slice(), k.as_slice()).to_vec();
+        v = hash::hmac_sha256(v.clone(), k.clone());
+        v = hash::hmac_sha256(v.clone(), k.clone());
 
         let mut t = EcTools::vec_to_integer(v.clone());
 
         while t <= BigInt::zero() || t >= curve.get_n() || !checksig(t.clone()) {
-            let mut tmp = v.clone();
+            let mut tmp = v.to_vec();
             tmp.extend_from_slice(&[0]);
-            k = hash::hmac_sha256(tmp.as_slice(), k.as_slice()).to_vec();
-            v = hash::hmac_sha256(v.as_slice(), k.as_slice()).to_vec();
+            k = hash::hmac_sha256(Data::new(tmp), k);
+            v = hash::hmac_sha256(v.clone(), k.clone());
 
-            v = hash::hmac_sha256(v.as_slice(), k.as_slice()).to_vec();
+            v = hash::hmac_sha256(v.clone(), k.clone());
 
             t = EcTools::vec_to_integer(v.clone());
         }
@@ -72,9 +72,9 @@ where
     }
 }
 
-pub fn sign<T>(curve: &CurveParam, hashed: T, d: BigInt, nonce: i64) -> EcSignature
+pub fn sign<'a, T>(curve: &CurveParam, hashed: T, d: BigInt, nonce: i64) -> EcSignature
 where
-    T: Into<Data>,
+    T: Into<Data<'a>>,
 {
     let hashed = hashed.into();
     let e = EcTools::vec_to_integer(hashed.clone());
@@ -140,11 +140,19 @@ pub fn verify_raw(curve: &CurveParam, e: BigInt, sig: &EcSignature, q: EcPoint) 
         _ => false,
     }
 }
-pub fn verify(curve: &CurveParam, hashed: Data, sig: &EcSignature, q: EcPoint) -> bool {
+pub fn verify<'a, T>(curve: &CurveParam, hashed: T, sig: &EcSignature, q: EcPoint) -> bool
+where
+    T: Into<Data<'a>>,
+{
+    let hashed = hashed.into();
     let e = EcTools::vec_to_integer(hashed);
     verify_raw(curve, e, sig, q)
 }
-pub fn verify_with_pub(hashed: Data, sig: &EcSignature, pubkey: &PublicKey) -> bool {
+pub fn verify_with_pub<'a, T>(hashed: T, sig: &EcSignature, pubkey: &PublicKey) -> bool
+where
+    T: Into<Data<'a>>,
+{
+    let hashed = hashed.into();
     let e = EcTools::vec_to_integer(hashed);
     verify_raw(&pubkey.curveparam, e, sig, pubkey.get_mdata())
 }

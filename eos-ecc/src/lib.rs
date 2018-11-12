@@ -1,3 +1,4 @@
+extern crate ring;
 extern crate crypto;
 extern crate rust_base58;
 extern crate exonum_sodiumoxide;
@@ -11,6 +12,7 @@ extern crate rand;
 extern crate byteorder;
 extern crate hex;
 extern crate rayon;
+extern crate eos_type;
 
 extern crate serde_json;
 #[macro_use]
@@ -20,15 +22,10 @@ extern crate lazy_static;
 #[macro_use]
 extern crate enum_map;
 
-use errorhandle::Errortype;
 use curve::curvetool::EcTools;
-
-pub type Data= Vec<u8>;
-pub type ResultData=Result<Data,Errortype>;
 
 #[allow(dead_code)]
 pub mod hash;
-pub mod errorhandle;
 #[allow(non_snake_case)]
 #[allow(dead_code)]
 pub mod key;

@@ -17,12 +17,12 @@ lazy_static!{
     static ref count:Mutex<i64>= Mutex::new(0);
 }
 
-pub fn encrypt(
+pub fn encrypt<'a>(
     private_key: &PrivateKey,
     public_key: &PublicKey,
-    message: Data,
+    message: Data<'a>,
     nonce: Option<i64>,
-) -> Data {
+) -> Data<'a> {
     let in_nonce = match nonce {
         Some(val) => val,
         None => unique_nonce(),
@@ -31,34 +31,34 @@ pub fn encrypt(
         .0
         .unwrap()
 }
-pub fn decrypt(
+pub fn decrypt<'a>(
     private_key: &PrivateKey,
     public_key: &PublicKey,
-    message: Data,
+    message: Data<'a>,
     nonce: i64,
     checksum: u32,
-) -> Data {
+) -> Data<'a> {
     crypt(private_key, public_key, message, nonce, Some(checksum))
         .0
         .unwrap()
 }
 //(message,checksum)
-fn crypt(
+fn crypt<'a>(
     private_key: &PrivateKey,
     public_key: &PublicKey,
-    message: Data,
+    message: Data<'a>,
     nonce: i64,
     checksum: Option<u32>,
-) -> (Result<Data, Errortype>, u32) {
+) -> (ResultData<'a>, u32) {
 
     let nonce = nonce as u64;
     let s = private_key.get_shared_secret(public_key);
-    let mut ebuf: Data = vec![];
+    let mut ebuf: Vec<u8> = Vec::new();
     ebuf.write_u64::<LittleEndian>(nonce).unwrap();
-    for i in s.iter() {
+    for i in s.to_vec().iter() {
         ebuf.write_u8(*i).unwrap();
     }
-    let encryption_key = hash::sha512(ebuf.as_slice());
+    let encryption_key = hash::sha512(Data::new(ebuf.clone()));
 
     let (key, iv) = ebuf.as_slice().split_at(32);
     let check_bytes = &hash::sha256(encryption_key)[..4];
@@ -67,40 +67,48 @@ fn crypt(
         if check != e {
             Err(Errortype::InvalidKey)
         } else {
-            Ok(crypto_decrypt(message, key, iv))
+            Ok(crypto_decrypt(
+                message,
+                Data::new(key.to_vec()),
+                Data::new(iv.to_vec()),
+            ))
         }
     } else {
-        Ok(crypto_encrypt(message, key, iv))
+        Ok(crypto_encrypt(
+            message,
+            Data::new(key.to_vec()),
+            Data::new(iv.to_vec()),
+        ))
     };
     (crypt_message, check)
 }
-fn crypto_encrypt(message: Data, key: &[u8], iv: &[u8]) -> Data {
-    let mut cipher = cbc_encryptor(KeySize::KeySize256, key, iv, NoPadding);
+fn crypto_encrypt<'a>(message: Data<'a>, key: Data<'a>, iv: Data<'a>) -> Data<'a> {
+    let mut cipher = cbc_encryptor(KeySize::KeySize256, key.as_ref(), iv.as_ref(), NoPadding);
     let mut output: Box<[u8]> = Box::new([0u8; 32]);
 
     {
         let mut output_buffer = RefWriteBuffer::new(&mut output);
-        let mut input_buffer = RefReadBuffer::new(message.as_slice());
+        let mut input_buffer = RefReadBuffer::new(message.as_ref());
         cipher
             .encrypt(&mut input_buffer, &mut output_buffer, false)
             .unwrap();
     }
-
-    output.iter().chain(output.iter()).map(|x| *x).collect()
+    let result: Vec<u8> = output.iter().chain(output.iter()).map(|x| *x).collect();
+    Data::new(result)
 }
-fn crypto_decrypt(message: Data, key: &[u8], iv: &[u8]) -> Data {
-    let mut decipher = cbc_decryptor(KeySize::KeySize256, key, iv, NoPadding);
+fn crypto_decrypt<'a>(message: Data<'a>, key: Data<'a>, iv: Data<'a>) -> Data<'a> {
+    let mut decipher = cbc_decryptor(KeySize::KeySize256, key.as_ref(), iv.as_ref(), NoPadding);
     let mut output: Box<[u8]> = Box::new([0u8; 32]);
 
     {
         let mut output_buffer = RefWriteBuffer::new(&mut output);
-        let mut input_buffer = RefReadBuffer::new(message.as_slice());
+        let mut input_buffer = RefReadBuffer::new(message.as_ref());
         decipher
             .decrypt(&mut input_buffer, &mut output_buffer, false)
             .unwrap();
     }
-
-    output.iter().chain(output.iter()).map(|x| *x).collect()
+    let result: Vec<u8> = output.iter().chain(output.iter()).map(|x| *x).collect();
+    Data::new(result)
 }
 // need some configure
 fn unique_nonce() -> i64 {
