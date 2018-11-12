@@ -407,8 +407,16 @@ impl<'a> From<&'a PrivateKey> for PublicKey {
             prikey.mprivate_key.clone(),
         );
         let curve = prikey.curveparam.get_curve();
-        let data: EcPoint = EcPoint::new(curve, q.x, q.y, true);
-        PublicKey::new(&data.get_encoded().unwrap(), prikey.get_curvetype(), None)
-            .unwrap_or(Default::default())
+        let data: EcPoint = EcPoint::new(curve.clone(), q.x, q.y, true);
+
+        let mut result: PublicKey = Default::default();
+        match data.get_encoded() {
+            Some(e) => {
+                let inner = PublicKey::from_data(curve, e.as_ref()).unwrap();
+                result.set_point(inner);
+            }
+            None => {}
+        }
+        result
     }
 }

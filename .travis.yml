@@ -3,3 +3,4 @@ rust:
   - stable
 script:
 - cargo build
+- cargo test -p ecc -- --nocapture

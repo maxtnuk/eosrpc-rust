@@ -11,7 +11,6 @@ use key::PublicKey;
 use key::primtool::modinverse;
 
 use std::sync::mpsc::channel;
-use std::thread;
 
 pub fn deterministic_generate_k<'a, F>(
     curve: &CurveParam,
@@ -228,40 +227,82 @@ pub fn calc_pubkey_recovery_param(
     sig: &EcSignature,
     pubkey: &PublicKey,
 ) -> Result<u32, Errortype> {
+    use rayon::prelude::*;
 
     let not_find = 5;
 
     let (sender, receiver) = channel();
+    /*
+let handles: Vec<_> = (0..4).map(|idx| {
+    let tx=sender.clone();
+    let t_curve=curve.clone();
+    let t_sig=sig.clone();
+    let q = pubkey.get_mdata();
+    let t_e=e.clone();
+    thread::spawn(move || {
+        //println!("current i: {}",idx);
 
-    let handles: Vec<_> = (0..4).map(|idx| {
-        let tx=sender.clone();
-        let t_curve=curve.clone();
-        let t_sig=sig.clone();
-        let q = pubkey.get_mdata();
-        let t_e=e.clone();
-        thread::spawn(move || {
-            //println!("current i: {}",idx);
+        let q_prime=recover_pubkey(t_curve,t_e,t_sig,idx.to_bigint().unwrap());
 
-            let q_prime=recover_pubkey(t_curve,t_e,t_sig,idx.to_bigint().unwrap());
+        let return_val: u32=match q_prime{
+            Ok(val)=>{
+                //println!("val \nx: {}\n y:{}",val.clone().x.unwrap(),val.clone().y.unwrap());
+                //println!("q \nx: {}\n y:{}",q.clone().x.unwrap(),q.clone().y.unwrap());
+                if val==q{
+                    idx
+                }else{
+                    not_find
+                }
+            },
+            Err(err)=>{
+                err_print(err);
+                not_find
+            }
+        };
+        tx.send(return_val).unwrap();
+    })
+}).collect();
+for handle in handles {
+    handle.join().expect("Unable to join");
+}
+ */
+    let q = pubkey.get_mdata();
+    //println!("{:?}", pubkey.to_string());
+    (0..4 as u32).into_par_iter().for_each_with(
+        sender,
+        |s, x: u32| {
+            //println!("current i: {}", x);
+            let q_prime = recover_pubkey(
+                curve.clone(),
+                e.clone(),
+                sig.clone(),
+                x.to_bigint().unwrap(),
+            );
 
-            let return_val: u32=match q_prime{
-                Ok(val)=>{
-                    //println!("val \nx: {}\n y:{}",val.clone().x.unwrap(),val.clone().y.unwrap());
-                    //println!("q \nx: {}\n y:{}",q.clone().x.unwrap(),q.clone().y.unwrap());
-                    if val==q{
-                        idx
-                    }else{
-                        not_find
-                    }
-                },
-                Err(err)=>{
-                    err_print(err);
+            let return_val: u32 = match q_prime {
+                Ok(val) => {
+                    /*
+                    println!(
+                        "val \nx: {}\n y:{}",
+                        val.clone().x.unwrap(),
+                        val.clone().y.unwrap()
+                    );
+                    println!(
+                        "q \nx: {}\n y:{}",
+                        q.clone().x.unwrap(),
+                        q.clone().y.unwrap()
+                    );
+                     */
+                    if val == q { x } else { not_find }
+                }
+                Err(err) => {
+                    //err_print(err);
                     not_find
                 }
             };
-            tx.send(return_val).unwrap();
-        })
-    }).collect();
+            s.send(return_val).unwrap();
+        },
+    );
 
     let mut result = Err(Errortype::NotFind);
     let mut idxs = Vec::with_capacity(4);
@@ -274,40 +315,5 @@ pub fn calc_pubkey_recovery_param(
             break;
         }
     }
-    for handle in handles {
-        handle.join().expect("Unable to join");
-    }
     result
 }
-/*
-// rayon method
-    (0..4 as u32).into_par_iter().for_each_with(sender, |s, x: u32| {
-        println!("current i: {}",x);
-        let q_prime=recover_pubkey(curve,e.clone(),sig,x.to_bigint().unwrap());
-
-        let return_val: u32=match q_prime{
-            Ok(val)=>{
-                println!("val \nx: {}\n y:{}",val.clone().x.unwrap(),val.clone().y.unwrap());
-                println!("q \nx: {}\n y:{}",q.clone().x.unwrap(),q.clone().y.unwrap());
-                if val==*q{
-                    x
-                }else{
-                    not_find
-                }
-            },
-            Err(err)=>{
-                err_print(err);
-                not_find
-            }
-        };
-        s.send(return_val).unwrap();
-    });
-    for i in receiver.iter(){
-        if let Some(e) = i{
-            not_find != e {
-            result=Ok(e);
-            break;
-            }
-        }
-    }
-    */

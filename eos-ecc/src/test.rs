@@ -1,3 +1,4 @@
+use prelude::*;
 #[test]
 fn key_unit_test() {
     use hash;
@@ -10,7 +11,7 @@ fn key_unit_test() {
     let pvtError = "key comparison test failed on a known private key";
     let pubError = "pubkey string comparison test failed on a known public key";
 
-    let test_data = hash::sha256("".as_bytes());
+    let test_data = hash::sha256(Data::from(""));
     let pvt = PrivateKey::from(test_data);
     //println!("{}",pvt.to_string().as_str());
 
@@ -38,8 +39,8 @@ fn bigint_test() {
 
     println!(
         "{}\n{}",
-        EcTools::vec_to_integer(vec_r),
-        EcTools::vec_to_integer(vec_s)
+        EcTools::vec_to_integer(Data::new(vec_r)),
+        EcTools::vec_to_integer(Data::new(vec_s))
     );
 }
 #[test]
@@ -134,10 +135,11 @@ fn signature_test() {
     use signature::Signature;
 
     let pvt = PrivateKey::from_seed("", None);
+    //println!("{}", pvt.to_string());
     let pubkey = PublicKey::from(&pvt);
-
+    //println!("{}", pubkey.to_string());
     let data = "hi";
-    let hashed = hash::sha256(data.as_bytes());
+    let hashed = hash::sha256(Data::from(data));
 
     let sigs = vec![
         Signature::sign(data, &pvt),

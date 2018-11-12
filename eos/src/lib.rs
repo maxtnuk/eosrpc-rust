@@ -139,7 +139,7 @@ impl<'a> Eos<'a> {
             ..Default::default()
         }
     }
-    pub fn transaction<F>(&self, block: Option<Transaction>, callback: F)
+    pub fn push_transaction<F>(&self, block: Option<Transaction>, callback: F)
     where
         F: Fn(Value),
     {
@@ -174,9 +174,9 @@ impl<'a> Eos<'a> {
                 String::from("compression"),
                 Value::String("none".to_string()),
             );
-            m.insert(String::from("packed_trx"), ref_block_value);
+            m.insert(String::from("transaction"), ref_block_value);
             m.insert(
-                String::from("packed_context_free_data"),
+                String::from("context_free_data"),
                 Value::String("".to_string()),
             );
             m.insert(String::from("signatures"), Value::Array(sig_strings));
