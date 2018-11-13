@@ -31,7 +31,7 @@ impl PublicKey {
 
         if let Some(string) = q.downcast_ref::<String>() {
             let in_str = Self::str_prefix(prefix);
-            match Self::from_string(curve, string.clone(), in_str) {
+            return match Self::from_string(curve, string.clone(), in_str) {
                 Ok(point) => {
                     result_default.set_point(point);
                     Ok(result_default)
@@ -43,9 +43,10 @@ impl PublicKey {
                         content: Some(string.clone()),
                     })
                 }
-            }
-        } else if let Some(vecs) = q.downcast_ref::<Vec<u8>>() {
-            match Self::from_data(curve, vecs.as_slice()) {
+            };
+        }
+        if let Some(vecs) = q.downcast_ref::<Vec<u8>>() {
+            return match Self::from_data(curve, vecs.as_slice()) {
                 Ok(point) => {
                     result_default.set_point(point);
                     Ok(result_default)
@@ -57,10 +58,9 @@ impl PublicKey {
                         content: None,
                     })
                 }
-            }
-        } else {
-            Err(Errortype::InputWrong)
+            };
         }
+        Err(Errortype::InputWrong)
     }
     fn new_with_type(ctype: Option<CurveType>) -> Self {
         let mcurve = ECCTOOL.get_curve_param(ctype);
@@ -188,7 +188,10 @@ impl PrivateKey {
         let re = Regex::new(r"^PVT_([A-Za-z0-9]+)_([A-Za-z0-9]+)$").expect("regex not create");
 
         if !re.is_match(private_key.as_str()) {
-            match keyutil::check_decode(Data::from(private_key), Some("sha256x2".to_string())) {
+            return match keyutil::check_decode(
+                Data::from(private_key),
+                Some("sha256x2".to_string()),
+            ) {
                 Ok(versionkey) => {
                     let version = versionkey.clone();
                     if version[0] == 0x80 {
@@ -202,30 +205,29 @@ impl PrivateKey {
                     err_print(err);
                     Err(Errortype::ParseFail)
                 }
-            }
-        } else {
-            match re.captures(private_key.as_str()) {
-                Some(key_info) => {
-                    let keytype = key_info.get(1).map_or("", |m| m.as_str());
-                    let keystring = key_info.get(2).map_or("", |m| m.as_str());
+            };
+        }
+        match re.captures(private_key.as_str()) {
+            Some(key_info) => {
+                let keytype = key_info.get(1).map_or("", |m| m.as_str());
+                let keystring = key_info.get(2).map_or("", |m| m.as_str());
 
-                    match keyutil::check_decode(Data::from(keystring), Some(keytype.to_string())) {
-                        Ok(pri_data) => {
-                            let privateKey = Self::from(pri_data);
-                            Ok((
-                                privateKey,
-                                "PVT".to_string(),
-                                key_info["keytype"].to_string(),
-                            ))
-                        }
-                        Err(err) => {
-                            err_print(err);
-                            Err(Errortype::ParseFail)
-                        }
+                match keyutil::check_decode(Data::from(keystring), Some(keytype.to_string())) {
+                    Ok(pri_data) => {
+                        let privateKey = Self::from(pri_data);
+                        Ok((
+                            privateKey,
+                            "PVT".to_string(),
+                            key_info["keytype"].to_string(),
+                        ))
+                    }
+                    Err(err) => {
+                        err_print(err);
+                        Err(Errortype::ParseFail)
                     }
                 }
-                None => Err(Errortype::ParseFail),
             }
+            None => Err(Errortype::ParseFail),
         }
     }
     fn set_mdata(&mut self, data: BigInt) {
@@ -244,13 +246,12 @@ impl PrivateKey {
     }
     fn to_vec<'a>(&self) -> Vec<u8> {
         let b_data = self.mprivate_key.to_bytes_be().1.clone();
-        let result = if b_data.len() < 32 {
+        if b_data.len() < 32 {
             let zeros = vec![0u8; 32 - b_data.len()];
             zeros.iter().chain(b_data.iter()).map(|x| *x).collect()
         } else {
             b_data
-        };
-        result
+        }
     }
     pub fn get_shared_secret<'a>(&self, pubkey: &PublicKey) -> Data<'a> {
         let KB = pubkey.to_uncompressed().unwrap();

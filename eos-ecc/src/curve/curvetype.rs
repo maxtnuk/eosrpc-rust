@@ -84,65 +84,63 @@ impl EcFieldElement {
     fn sqrt(&self) -> Result<Self, Errortype> {
         let bitvecQ = rev_bitvec(self.q.clone());
         if !test_bit(&bitvecQ, 0) {
-            Err(Errortype::NotDone)
-        } else {
-            if test_bit(&bitvecQ, 1) {
-                let exp = (self.q.clone() >> 2) + BigInt::one();
-                let z = Self::new(self.x.clone().modpow(&exp, &self.q), self.q.clone());
-                if z.square() == *self {
-                    Ok(z)
-                } else {
-                    Err(Errortype::NotExist("EcFieldElement".to_string()))
-                }
+            return Err(Errortype::NotDone);
+        }
+        if test_bit(&bitvecQ, 1) {
+            let exp = (self.q.clone() >> 2) + BigInt::one();
+            let z = Self::new(self.x.clone().modpow(&exp, &self.q), self.q.clone());
+
+            return if z.square() == *self {
+                Ok(z)
             } else {
-                let q_minus = &self.q - BigInt::one();
-                let legendre_exponent = q_minus.clone() >> 1;
-                if self.x.clone().modpow(&legendre_exponent, &self.q) == BigInt::one() {
-                    Err(Errortype::NotExist("EcFieldElement".to_string()))
-                } else {
-                    let u = q_minus.clone() >> 2;
-                    let k = (u << 1) + BigInt::one();
+                Err(Errortype::NotExist("EcFieldElement".to_string()))
+            };
+        }
+        let q_minus = &self.q - BigInt::one();
+        let legendre_exponent = q_minus.clone() >> 1;
+        if self.x.clone().modpow(&legendre_exponent, &self.q) == BigInt::one() {
+            return Err(Errortype::NotExist("EcFieldElement".to_string()));
+        }
+        let u = q_minus.clone() >> 2;
+        let k = (u << 1) + BigInt::one();
 
-                    let Q = self.x.clone();
-                    let four_q = (Q.clone() << 2).modpow(&BIG1, &self.q);
-                    let mut U = BigInt::one();
-                    let mut result_str: Option<BigInt> = None;
+        let Q = self.x.clone();
+        let four_q = (Q.clone() << 2).modpow(&BIG1, &self.q);
+        let mut U = BigInt::one();
+        let mut result_str: Option<BigInt> = None;
 
-                    while U == BigInt::one() || U == q_minus.clone() {
-                        let mut p = BigInt::zero().clone();
+        while U == BigInt::one() || U == q_minus.clone() {
+            let mut p = BigInt::zero().clone();
 
-                        let mut rng = rand::thread_rng();
-                        while p >= self.q.clone() ||
-                            (p.clone() * p.clone() - four_q.clone()).modpow(
-                                &legendre_exponent,
-                                &self.q,
-                            ) != q_minus || p == BigInt::zero()
-                        {
-                            p = rng.sample(RandomBits::new(self.q.bits()));
-                        }
-                        let result = self.lucas_sequence(&p, &Q, &k);
-                        U = result[0].clone();
-                        let mut V = result[1].clone();
-
-                        if (V.clone() * V.clone()).modpow(&BIG1, &self.q) == four_q {
-                            let bitvecV = rev_bitvec(V.clone());
-                            if test_bit(&bitvecV, 0) {
-                                V = V.clone() + self.q.clone();
-                            }
-                            result_str = Some(V >> 1);
-                            break;
-                        }
-                    }
-                    if let Some(res) = result_str {
-                        Ok(Self::new(res, self.q.clone()))
-                    } else {
-                        Err(Errortype::MakeFail {
-                            who: "EcFieldElement".to_string(),
-                            content: None,
-                        })
-                    }
-                }
+            let mut rng = rand::thread_rng();
+            while p >= self.q.clone() ||
+                (p.clone() * p.clone() - four_q.clone()).modpow(
+                    &legendre_exponent,
+                    &self.q,
+                ) != q_minus || p == BigInt::zero()
+            {
+                p = rng.sample(RandomBits::new(self.q.bits()));
             }
+            let result = self.lucas_sequence(&p, &Q, &k);
+            U = result[0].clone();
+            let mut V = result[1].clone();
+
+            if (V.clone() * V.clone()).modpow(&BIG1, &self.q) == four_q {
+                let bitvecV = rev_bitvec(V.clone());
+                if test_bit(&bitvecV, 0) {
+                    V = V.clone() + self.q.clone();
+                }
+                result_str = Some(V >> 1);
+                break;
+            }
+        }
+        if let Some(res) = result_str {
+            Ok(Self::new(res, self.q.clone()))
+        } else {
+            Err(Errortype::MakeFail {
+                who: "EcFieldElement".to_string(),
+                content: None,
+            })
         }
     }
     fn lucas_sequence(&self, P: &BigInt, Q: &BigInt, k: &BigInt) -> Vec<BigInt> {
@@ -368,24 +366,23 @@ impl EcCurve {
     }
     fn is_on_curve(&self, q: &EcPoint) -> bool {
         if q.is_infinity() {
-            true
-        } else {
-            let x = q.x.clone().unwrap();
-            let y = q.y.clone().unwrap();
+            return true;
+        }
+        let x = q.x.clone().unwrap();
+        let y = q.y.clone().unwrap();
 
-            let x_flag = x.x.clone() <= BigInt::zero() || x.x.clone() >= self.q;
-            let y_flag = y.x.clone() <= BigInt::zero() || y.x.clone() >= self.q;
-            match (x_flag, y_flag) {
-                (false, false) => {
+        let x_flag = x.x.clone() <= BigInt::zero() || x.x.clone() >= self.q;
+        let y_flag = y.x.clone() <= BigInt::zero() || y.x.clone() >= self.q;
+        match (x_flag, y_flag) {
+            (false, false) => {
 
-                    let lhs = y.clone().square();
-                    let x3 = x.clone() * x.clone() * x.clone();
-                    let rhs = x3 + (self.a.clone() * x.clone()) + self.b.clone();
+                let lhs = y.clone().square();
+                let x3 = x.clone() * x.clone() * x.clone();
+                let rhs = x3 + (self.a.clone() * x.clone()) + self.b.clone();
 
-                    lhs.x.mod_floor(&self.q) == rhs.x.mod_floor(&self.q)
-                }
-                _ => false,
+                lhs.x.mod_floor(&self.q) == rhs.x.mod_floor(&self.q)
             }
+            _ => false,
         }
     }
 }
@@ -421,28 +418,26 @@ impl EcPoint {
     }
     pub fn get_encoded_by_bool<'a>(&self, check: bool) -> Option<Data<'a>> {
         if self.is_infinity() {
-            None
+            return None;
+        }
+        let x_clone = self.x.clone().unwrap();
+        let y_clone = self.y.clone().unwrap();
+
+        let length = EcTools::get_byte_length(x_clone.q.bits());
+        if check {
+            let big_y = y_clone.x.clone();
+            let bitvecY = rev_bitvec(big_y);
+            let pc = if bitvecY.get(0).unwrap() { 0x03 } else { 0x02 };
+
+            let mut x: Vec<u8> = EcTools::integer_to_vec(x_clone.clone().x, length);
+            x.insert(0, pc);
+            Some(Data::new(x))
         } else {
-            let x_clone = self.x.clone().unwrap();
-            let y_clone = self.y.clone().unwrap();
-
-            let length = EcTools::get_byte_length(x_clone.q.bits());
-            if check {
-
-                let big_y = y_clone.x.clone();
-                let bitvecY = rev_bitvec(big_y);
-                let pc = if bitvecY.get(0).unwrap() { 0x03 } else { 0x02 };
-
-                let mut x: Vec<u8> = EcTools::integer_to_vec(x_clone.clone().x, length);
-                x.insert(0, pc);
-                Some(Data::new(x))
-            } else {
-                let x: Vec<u8> = EcTools::integer_to_vec(x_clone.clone().x, length);
-                let y: Vec<u8> = EcTools::integer_to_vec(y_clone.clone().x, length);
-                let mut result: Vec<u8> = x.iter().chain(y.iter()).map(|x| *x).collect();
-                result.insert(0, 0x04);
-                Some(Data::new(result))
-            }
+            let x: Vec<u8> = EcTools::integer_to_vec(x_clone.clone().x, length);
+            let y: Vec<u8> = EcTools::integer_to_vec(y_clone.clone().x, length);
+            let mut result: Vec<u8> = x.iter().chain(y.iter()).map(|x| *x).collect();
+            result.insert(0, 0x04);
+            Some(Data::new(result))
         }
     }
     pub fn subtract(self, b: Self) -> Self {
@@ -454,50 +449,49 @@ impl EcPoint {
     }
     pub fn add(self, b: Self) -> Self {
         if self.is_infinity() {
-            b
-        } else if b.is_infinity() {
-            self
-        } else {
-            let x_clone = self.x.clone().unwrap();
-            let y_clone = self.y.clone().unwrap();
-            if x_clone.clone() == b.x.clone().unwrap() {
-                if y_clone.clone() == b.y.clone().unwrap() {
-                    self.twice()
-                } else {
-                    //println!("called here");
-                    self.curve.new_infinity_point()
-                }
+            return b;
+        }
+        if b.is_infinity() {
+            return self;
+        }
+        let x_clone = self.x.clone().unwrap();
+        let y_clone = self.y.clone().unwrap();
+        if x_clone.clone() == b.x.clone().unwrap() {
+            if y_clone.clone() == b.y.clone().unwrap() {
+                self.twice()
             } else {
-                let gamma = (b.y.unwrap().clone() - y_clone.clone()) /
-                    (b.x.clone().unwrap() - x_clone.clone());
-
-                let x3 = gamma.clone().square() - x_clone.clone() - b.x.clone().unwrap();
-                let y3 = gamma.clone() * (x_clone.clone() - x3.clone()) - y_clone.clone();
-
-                EcPoint::new(self.curve, Some(x3), Some(y3), false)
+                //println!("called here");
+                self.curve.new_infinity_point()
             }
+        } else {
+            let gamma = (b.y.unwrap().clone() - y_clone.clone()) /
+                (b.x.clone().unwrap() - x_clone.clone());
+
+            let x3 = gamma.clone().square() - x_clone.clone() - b.x.clone().unwrap();
+            let y3 = gamma.clone() * (x_clone.clone() - x3.clone()) - y_clone.clone();
+
+            EcPoint::new(self.curve, Some(x3), Some(y3), false)
         }
     }
     pub fn twice(self) -> Self {
         if self.is_infinity() {
-            self
+            return self;
+        }
+        let x_clone = self.x.clone().unwrap();
+        let y_clone = self.y.clone().unwrap();
+        if y_clone.clone().x == BigInt::zero() {
+            self.curve.new_infinity_point()
         } else {
-            let x_clone = self.x.clone().unwrap();
-            let y_clone = self.y.clone().unwrap();
-            if y_clone.clone().x == BigInt::zero() {
-                self.curve.new_infinity_point()
-            } else {
-                let TWO = self.curve.from_self_big_integer(2.to_bigint().unwrap());
-                let THREE = self.curve.from_self_big_integer(3.to_bigint().unwrap());
+            let TWO = self.curve.from_self_big_integer(2.to_bigint().unwrap());
+            let THREE = self.curve.from_self_big_integer(3.to_bigint().unwrap());
 
-                let gamma = (x_clone.clone().square() * THREE.clone() + self.curve.a.clone()) /
-                    (y_clone.clone() * TWO.clone());
+            let gamma = (x_clone.clone().square() * THREE.clone() + self.curve.a.clone()) /
+                (y_clone.clone() * TWO.clone());
 
-                let x3 = gamma.clone().square() - (x_clone.clone() * TWO);
-                let y3 = gamma.clone() * (x_clone.clone() - x3.clone()) - y_clone.clone();
+            let x3 = gamma.clone().square() - (x_clone.clone() * TWO);
+            let y3 = gamma.clone() * (x_clone.clone() - x3.clone()) - y_clone.clone();
 
-                EcPoint::new(self.curve, Some(x3), Some(y3), self.compressed)
-            }
+            EcPoint::new(self.curve, Some(x3), Some(y3), self.compressed)
         }
     }
     pub fn negate(self) -> Self {
@@ -564,12 +558,12 @@ impl EcPoint {
 impl PartialEq for EcPoint {
     fn eq(&self, other: &EcPoint) -> bool {
         if self.is_infinity() {
-            other.is_infinity()
-        } else if other.is_infinity() {
-            self.is_infinity()
-        } else {
-            self.x.clone().unwrap() == other.x.clone().unwrap() &&
-                self.y.clone().unwrap() == other.y.clone().unwrap()
+            return other.is_infinity();
         }
+        if other.is_infinity() {
+            return self.is_infinity();
+        }
+        self.x.clone().unwrap() == other.x.clone().unwrap() &&
+            self.y.clone().unwrap() == other.y.clone().unwrap()
     }
 }

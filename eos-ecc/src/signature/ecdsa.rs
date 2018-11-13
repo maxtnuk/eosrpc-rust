@@ -89,17 +89,16 @@ where
             let q = g.clone().multiply(b.clone());
 
             if q.is_infinity() {
+                return false;
+            }
+            r = q.x.unwrap().x.mod_floor(&n);
+            if r == BigInt::zero() {
                 false
             } else {
-                r = q.x.unwrap().x.mod_floor(&n);
-                if r == BigInt::zero() {
-                    false
-                } else {
-                    s = (modinverse(b.clone(), n.clone()).unwrap() *
-                             (e.clone() + d.clone() * r.clone()))
-                        .mod_floor(&n);
-                    s != BigInt::zero()
-                }
+                s = (modinverse(b.clone(), n.clone()).unwrap() *
+                         (e.clone() + d.clone() * r.clone()))
+                    .mod_floor(&n);
+                s != BigInt::zero()
             }
         },
         nonce,
@@ -163,61 +162,59 @@ pub fn recover_pubkey(
     i: BigInt,
 ) -> Result<EcPoint, Errortype> {
     if i.clone() & 3.to_bigint().unwrap() != i.clone() {
-        Err(Errortype::NotSame)
-    } else {
-        let n = curve.get_n();
-        let g = curve.get_g();
+        return Err(Errortype::NotSame);
+    }
+    let n = curve.get_n();
+    let g = curve.get_g();
 
-        let s_clone = sig.s.clone();
-        let r_clone = sig.r.clone();
+    let s_clone = sig.s.clone();
+    let r_clone = sig.r.clone();
 
-        let r_flag = r_clone <= BigInt::zero() || r_clone >= n;
-        let s_flag = s_clone <= BigInt::zero() || s_clone >= n;
-        match (r_flag, s_flag) {
-            (false, false) => {
-                let is_odd = i.clone() & BigInt::one() == BigInt::one();
+    let r_flag = r_clone <= BigInt::zero() || r_clone >= n;
+    let s_flag = s_clone <= BigInt::zero() || s_clone >= n;
+    match (r_flag, s_flag) {
+        (false, false) => {
+            let is_odd = i.clone() & BigInt::one() == BigInt::one();
 
-                let is_second = i.clone() >> 1 == BigInt::one();
-                //need fix
-                let x = if is_second {
-                    r_clone.clone() + n.clone()
-                } else {
-                    r_clone.clone()
-                };
-                let R = curve.get_curve().new_point_fromx(is_odd, x);
+            let is_second = i.clone() >> 1 == BigInt::one();
+            //need fix
+            let x = if is_second {
+                r_clone.clone() + n.clone()
+            } else {
+                r_clone.clone()
+            };
+            let R = curve.get_curve().new_point_fromx(is_odd, x);
 
-                let nr = R.clone().multiply(n.clone());
-                if nr.is_infinity() {
-                    //println!("nR is not a valid curve point");
-                    Err(Errortype::MakeFail {
-                        who: "Recovery pubkey".to_string(),
-                        content: None,
-                    })
-                } else {
-                    // Compute -e from e
-                    let eneg = {
-                        (-e).mod_floor(&n)
-                    };
-
-                    let rinv = modinverse(r_clone.clone(), n.clone()).unwrap();
-
-                    let q = R.multiply_two(s_clone, g, eneg).multiply(rinv);
-                    if curve.get_curve().validate(&q) {
-                        Ok(q)
-                    } else {
-                        Err(Errortype::MakeFail {
-                            who: "Recovery pubkey".to_string(),
-                            content: None,
-                        })
-                    }
-                }
+            let nr = R.clone().multiply(n.clone());
+            if nr.is_infinity() {
+                //println!("nR is not a valid curve point");
+                return Err(Errortype::MakeFail {
+                    who: "Recovery pubkey".to_string(),
+                    content: None,
+                });
             }
-            _ => {
+            // Compute -e from e
+            let eneg = {
+                (-e).mod_floor(&n)
+            };
+
+            let rinv = modinverse(r_clone.clone(), n.clone()).unwrap();
+
+            let q = R.multiply_two(s_clone, g, eneg).multiply(rinv);
+            if curve.get_curve().validate(&q) {
+                Ok(q)
+            } else {
                 Err(Errortype::MakeFail {
                     who: "Recovery pubkey".to_string(),
                     content: None,
                 })
             }
+        }
+        _ => {
+            Err(Errortype::MakeFail {
+                who: "Recovery pubkey".to_string(),
+                content: None,
+            })
         }
     }
 }
@@ -230,42 +227,7 @@ pub fn calc_pubkey_recovery_param(
     use rayon::prelude::*;
 
     let not_find = 5;
-
     let (sender, receiver) = channel();
-    /*
-let handles: Vec<_> = (0..4).map(|idx| {
-    let tx=sender.clone();
-    let t_curve=curve.clone();
-    let t_sig=sig.clone();
-    let q = pubkey.get_mdata();
-    let t_e=e.clone();
-    thread::spawn(move || {
-        //println!("current i: {}",idx);
-
-        let q_prime=recover_pubkey(t_curve,t_e,t_sig,idx.to_bigint().unwrap());
-
-        let return_val: u32=match q_prime{
-            Ok(val)=>{
-                //println!("val \nx: {}\n y:{}",val.clone().x.unwrap(),val.clone().y.unwrap());
-                //println!("q \nx: {}\n y:{}",q.clone().x.unwrap(),q.clone().y.unwrap());
-                if val==q{
-                    idx
-                }else{
-                    not_find
-                }
-            },
-            Err(err)=>{
-                err_print(err);
-                not_find
-            }
-        };
-        tx.send(return_val).unwrap();
-    })
-}).collect();
-for handle in handles {
-    handle.join().expect("Unable to join");
-}
- */
     let q = pubkey.get_mdata();
     //println!("{:?}", pubkey.to_string());
     (0..4 as u32).into_par_iter().for_each_with(
@@ -280,21 +242,7 @@ for handle in handles {
             );
 
             let return_val: u32 = match q_prime {
-                Ok(val) => {
-                    /*
-                    println!(
-                        "val \nx: {}\n y:{}",
-                        val.clone().x.unwrap(),
-                        val.clone().y.unwrap()
-                    );
-                    println!(
-                        "q \nx: {}\n y:{}",
-                        q.clone().x.unwrap(),
-                        q.clone().y.unwrap()
-                    );
-                     */
-                    if val == q { x } else { not_find }
-                }
+                Ok(val) => if val == q { x } else { not_find },
                 Err(err) => {
                     //err_print(err);
                     not_find
@@ -317,3 +265,37 @@ for handle in handles {
     }
     result
 }
+/*
+let handles: Vec<_> = (0..4).map(|idx| {
+let tx=sender.clone();
+let t_curve=curve.clone();
+let t_sig=sig.clone();
+let q = pubkey.get_mdata();
+let t_e=e.clone();
+thread::spawn(move || {
+    //println!("current i: {}",idx);
+
+    let q_prime=recover_pubkey(t_curve,t_e,t_sig,idx.to_bigint().unwrap());
+
+    let return_val: u32=match q_prime{
+        Ok(val)=>{
+            //println!("val \nx: {}\n y:{}",val.clone().x.unwrap(),val.clone().y.unwrap());
+            //println!("q \nx: {}\n y:{}",q.clone().x.unwrap(),q.clone().y.unwrap());
+            if val==q{
+                idx
+            }else{
+                not_find
+            }
+        },
+        Err(err)=>{
+            err_print(err);
+            not_find
+        }
+    };
+    tx.send(return_val).unwrap();
+})
+}).collect();
+for handle in handles {
+handle.join().expect("Unable to join");
+}
+*/
