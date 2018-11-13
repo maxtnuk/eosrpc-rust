@@ -78,6 +78,7 @@ pub struct BlcokProvoder {
 impl<'a> Pfunc<'a, BlockInfo> for BlcokProvoder {
     fn get_it(&self, api: &EosApi<'a>) -> BlockInfo {
         let result = api.http_request("get_block", &self).unwrap();
+        println!("{}", result);
         serde_json::from_value(result).unwrap()
     }
 }

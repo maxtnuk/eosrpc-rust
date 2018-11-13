@@ -26,10 +26,10 @@ pub use rpc_interface::trs::Transaction;
 
 use eos_api::EosApi;
 
-use rpc_interface::*;
+pub use rpc_interface::*;
 use eos_type::*;
-use provider::*;
-use provider::Pfunc;
+pub use provider::*;
+pub use provider::Pfunc;
 
 use serde_json::Value;
 use chrono::prelude::*;
@@ -53,7 +53,7 @@ impl<'a> Default for EosConfig<'a> {
 }
 
 pub struct Eos<'a> {
-    network: EosApi<'a>,
+    pub network: EosApi<'a>,
     abis: HashMap<&'a str, ABI>,
     config: EosConfig<'a>,
 }

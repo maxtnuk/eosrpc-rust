@@ -1,8 +1,32 @@
 language: rust
 cache: cargo
 
+services:
+  - docker
+
+before_install:
+  - docker docker pull eosio/eos
+  - docker network create eosnetwork
+  - docker run --name server -d --network=eosnetwork --rm -p 8888:8888 -p 9876:9876 \
+  -v /tmp/work:/work -v /tmp/eosio/data:/mnt/dev/data -v /tmp/eosio/config:/mnt/dev/config \
+  -i eosio/eos /bin/bash -c \
+  "nodeos -e -p eosio \
+  --plugin eosio::producer_plugin  --plugin eosio::history_plugin \
+  --plugin eosio::chain_api_plugin \
+  --plugin eosio::history_api_plugin \
+  --plugin eosio::http_plugin -d /mnt/dev/data \
+  --config-dir /mnt/dev/config \
+  --http-server-address=0.0.0.0:8888 \
+  --access-control-allow-origin=* \
+  --contracts-console \
+  --http-validate-host=false"
+  - docker run --name wallet -d --network=eosnetwork --rm -p 5555:5555 \
+  -v /home/ec2-user/environment/eosio-wallet:/root/eosio-wallet \
+  -i eosio/eos /bin/bash -c \
+  "keosd --http-server-address=0.0.0.0:5555 --http-validate-host=false"
+  
 rust:
   - stable
 script:
 - cargo build
-- cargo test -p ecc -- --nocapture
+- cargo test eos_test -- --nocapture

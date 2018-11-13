@@ -7,18 +7,24 @@ pub struct Regions {
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockInfo {
-    pub previous: String,
-    pub timestamp: String,
-    pub transaction_mroot: String,
     pub action_mroot: String,
-    pub block_mroot: String,
-    pub producer: String,
-    pub schedule_version: i64,
-    pub new_producers: String,
-    pub producer_signature: String,
-    pub regions: Vec<Regions>,
-    pub input_transactions: Vec<Value>,
-    pub id: String,
+    #[serde(default)]
+    pub block_extensions: Vec<Value>,
     pub block_num: u64,
+    pub confirmed: u64,
+    #[serde(default)]
+    pub header_extensions: Vec<Value>,
+    pub id: String,
+    #[serde(default)]
+    pub new_producers: Option<String>,
+    pub previous: String,
+    pub producer: String,
+    pub producer_signature: String,
     pub ref_block_prefix: u64,
+    pub schedule_version: u64,
+    pub timestamp: String,
+    #[serde(default)]
+    pub transaction_mroot: String,
+    #[serde(default)]
+    pub transactions: Vec<Value>,
 }
