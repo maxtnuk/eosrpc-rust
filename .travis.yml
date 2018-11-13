@@ -24,7 +24,7 @@ before_install:
   -v /home/ec2-user/environment/eosio-wallet:/root/eosio-wallet \
   -i eosio/eos /bin/bash -c \
   "keosd --http-server-address=0.0.0.0:5555 --http-validate-host=false"
-  
+
 rust:
   - stable
 script:

@@ -1,4 +1,9 @@
-use {Eos, EosConfig, ApiConfig};
+extern crate eos;
+use eos::{Eos, EosConfig, ApiConfig};
+use eos::{InfoProvider, Pfunc};
+fn main() {
+    unimplemented!()
+}
 #[test]
 fn eos_test() {
     let test_config = EosConfig {
@@ -9,10 +14,8 @@ fn eos_test() {
         ..Default::default()
     };
     let test = Eos::new(test_config);
-    let input = r#"{
-                "account_name" : "eosio"
-        }"#;
-    let result = test.method("get_info", "{}");
+    let result = InfoProvider {}.get_it(&test.network);
+    println!("{:?}", result);
     //println!("{}",result);
     let trx = test.create_transaction(None);
     println!("{:?}", trx);
