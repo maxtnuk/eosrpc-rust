@@ -15,32 +15,31 @@ extern crate serde_derive;
 
 pub mod format;
 pub mod prelude;
-pub mod structs;
-pub mod eosecc;
+pub mod provider;
+pub mod rpc_interface;
 
 #[cfg(test)]
 mod test;
 
 pub use eos_api::ApiConfig;
-pub use structs::trs::Transaction;
+pub use rpc_interface::trs::Transaction;
 
 use eos_api::EosApi;
-use ecc::hash;
 
-use structs::abi::ABI;
-use eosecc::{KeyProvider, SignProvider};
+use rpc_interface::*;
+use eos_type::*;
+use provider::*;
+use provider::Pfunc;
 
 use serde_json::Value;
 use chrono::prelude::*;
 use chrono::Duration;
-use bincode::serialize;
 use std::collections::HashMap;
 use std::fs::File;
-use eos_type::*;
 
 pub struct EosConfig<'a> {
     pub api_config: ApiConfig<'a>,
-    pub keys: Vec<KeyProvider>,
+    pub keys: Vec<String>,
     pub header: Option<Transaction>,
 }
 impl<'a> Default for EosConfig<'a> {
@@ -69,9 +68,9 @@ impl<'a> Eos<'a> {
         let eosio_token = Self::abi_value("eosio.token.abi.json");
         let eosio_system = Self::abi_value("eosio.system.abi.json");
 
-        abis.insert("eosio-null", Self::abi(&eosio_null));
-        abis.insert("eosio-token", Self::abi(&eosio_token));
-        abis.insert("eosio-system", Self::abi(&eosio_system));
+        abis.insert("eosio-null", eosio_null);
+        abis.insert("eosio-token", eosio_token);
+        abis.insert("eosio-system", eosio_system);
 
         Eos {
             network: network,
@@ -80,33 +79,22 @@ impl<'a> Eos<'a> {
         }
     }
     pub fn abi_async(&self, account: &str) -> ABI {
-        let account_info = json!({
-            "account_name": account
-        });
-        let code = self.network.http_request("get_abi", &account_info).unwrap();
-        Self::abi(&code["abi"])
+        let code = AbiProvider { account_name: account.to_string() }.get_it(&self.network);
+        code.abi.clone()
     }
-    pub fn abi(code: &Value) -> ABI {
-        serde_json::from_value(code.clone()).unwrap()
-    }
-    pub fn abi_value(file_name: &str) -> Value {
+    pub fn abi_value(file_name: &str) -> ABI {
         let default_path = "./eos/src/schema/".to_string();
         let file = File::open(default_path + file_name).unwrap();
-        serde_json::from_reader(file).unwrap_or(json!(null))
+        serde_json::from_reader(file).unwrap()
     }
     pub fn abi_to_bin(&self, code: String, action: String, args: &Value) -> u64 {
-        use serde_json::map::Map;
-        let req_value = {
-            let mut m = Map::new();
-            m.insert(String::from("code"), Value::String(code));
-            m.insert(String::from("action"), Value::String(action));
-            m.insert(String::from("args"), args.clone());
-            Value::Object(m)
-        };
-        let binresult = self.network
-            .http_request("abi_json_to_bin", &req_value)
-            .unwrap();
-        binresult["binargs"].as_u64().unwrap()
+        let binresult = AbiToBinProvider {
+            code: code,
+            action: action,
+            args: args.clone(),
+        }.get_it(&self.network);
+
+        binresult.binargs
     }
     pub fn method(&self, name: &str, args: &str) -> Value {
         let arg: Value = serde_json::from_str(args).unwrap();
@@ -114,18 +102,15 @@ impl<'a> Eos<'a> {
     }
     pub fn create_transaction(&self, expire_sec: Option<i64>) -> Transaction {
         let api = &self.network;
-        let get_info = api.http_request("get_info", &json!({})).unwrap();
+        let get_info = InfoProvider {}.get_it(api);
 
-        let head_block_time = get_info["head_block_time"].as_str().unwrap().to_owned();
+        let head_block_time = get_info.head_block_time;
         let chain_date = DateTime::parse_from_rfc3339((head_block_time + "Z").as_str()).unwrap();
 
-        let irr_block = get_info["last_irreversible_block_num"].as_u64().unwrap();
+        let irr_block = get_info.last_irreversible_block_num;
 
-        let block_param = json!({
-            "block_num_or_id": irr_block
-        });
-        let block = api.http_request("get_block", &block_param).unwrap();
-        //println!("{}",serde_json::to_string_pretty(&block).unwrap());
+        let block = BlcokProvoder { block_num_or_id: irr_block }.get_it(api);
+
         let expiration = match expire_sec {
             Some(e) => chain_date + Duration::seconds(e * 1000),
             None => chain_date + Duration::seconds(60 * 1000),
@@ -135,59 +120,38 @@ impl<'a> Eos<'a> {
         Transaction {
             expiration: expiration.to_rfc3339(),
             ref_block_num: ref_block_num,
-            ref_block_prefix: block["ref_block_prefix"].as_u64().unwrap(),
+            ref_block_prefix: block.ref_block_prefix,
             ..Default::default()
         }
     }
-    pub fn push_transaction<F>(&self, block: Option<Transaction>, callback: F)
-    where
-        F: Fn(Value),
-    {
+    pub fn push_transaction(&self, block: Option<Transaction>) {
+        let api = &self.network;
+        let option = self.config.api_config.clone();
         let ref_block = block.unwrap_or({
             self.config.header.clone().unwrap_or({
                 self.create_transaction(None)
             })
         });
 
-        let buf: Vec<u8> = serialize(&ref_block).unwrap();
-        let transaction_id = hash::to_hex(hash::sha256(Data::new(buf.clone())));
-        let option = self.config.api_config.clone();
-        let sigs = if option.sign {
-            let chainid_buf = option.chain_id.as_bytes().to_vec();
-            let packed_context_freedata = vec![0u8; 32];
-            SignProvider::new(self.config.keys.clone()).gen_sigs(
-                &self.network,
-                ref_block.clone(),
-                buf.as_slice(),
-            )
-        } else {
-            Vec::new()
-        };
+        let reqkeys = AuthorityProvider {
+            transaction: ref_block.clone(),
+            available_keys: self.config.keys.clone(),
+        }.get_it(api);
 
-        let sig_strings: Vec<Value> = sigs.iter().map(|x| Value::String(x.to_string())).collect();
-        let ref_block_value = serde_json::to_value(ref_block).unwrap();
+        let sigs = SignProvider {
+            chain_id: option.chain_id.to_string(),
+            keys: reqkeys,
+            transaction: ref_block.clone(),
+            abis: Vec::new(),
+        }.gen_sigs();
 
-        let packed_trx = {
-            use serde_json::map::Map;
-            let mut m = Map::new();
-            m.insert(
-                String::from("compression"),
-                Value::String("none".to_string()),
-            );
-            m.insert(String::from("transaction"), ref_block_value);
-            m.insert(
-                String::from("context_free_data"),
-                Value::String("".to_string()),
-            );
-            m.insert(String::from("signatures"), Value::Array(sig_strings));
-            Value::Object(m)
-        };
-        let api = &self.network;
-        if option.broadcast {
-            let result = api.http_request("push_transaction", &packed_trx);
-            callback(result.unwrap());
-        } else {
+        let sig_strings: Vec<String> = sigs.iter().map(|x| x.to_string()).collect();
 
-        }
+        let packed_trx = PushTransactionProvider {
+            compression: "none".to_string(),
+            transaction: ref_block,
+            context_free_data: "".to_string(),
+            signatures: sig_strings,
+        }.get_it(api);
     }
 }

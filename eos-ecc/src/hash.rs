@@ -42,3 +42,6 @@ pub fn hmac_sha256<'a>(buffer: Data<'a>, key: Data<'a>) -> Data<'a> {
 pub fn to_hex<'a>(data: Data<'a>) -> String {
     hex::encode(data.as_ref())
 }
+pub fn to_bytes<'a>(data: String) -> Vec<u8> {
+    hex::decode(data.as_str()).unwrap_or(Vec::new())
+}

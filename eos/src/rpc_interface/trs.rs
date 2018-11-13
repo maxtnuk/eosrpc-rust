@@ -1,8 +1,4 @@
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct Auth {
-    actor: String,
-    permission: String,
-}
+use super::Auth;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TActions {
     account: String,

@@ -1,8 +1,8 @@
 use serde_json::Value;
-use structs::trs::Auth;
+use rpc_interface::Auth;
 
 #[derive(Default, Clone, Serialize, Deserialize)]
-struct GeneratedType {
+pub struct ResTransaction {
     transaction_id: String,
     processed: Processed,
 }

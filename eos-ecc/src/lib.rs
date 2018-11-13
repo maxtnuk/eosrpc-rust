@@ -23,6 +23,7 @@ extern crate lazy_static;
 extern crate enum_map;
 
 use curve::curvetool::EcTools;
+pub use hash::to_bytes;
 
 #[allow(dead_code)]
 pub mod hash;
