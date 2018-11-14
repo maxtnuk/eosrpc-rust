@@ -1,5 +1,7 @@
 use num::Integer;
-use num::BigInt;
+use num_bigint::{RandomBits, BigInt};
+use rand::thread_rng;
+use rand::distributions::Distribution;
 use bit_vec::BitVec;
 
 pub fn egcd<T: Clone + Integer>(a: T, b: T) -> (T, T, T) {
@@ -28,4 +30,9 @@ pub fn test_bit(o: &BitVec, idx: usize) -> bool {
         Some(e) => e,
         None => false,
     }
+}
+pub fn random_bytes(bytes: usize) -> Vec<u8> {
+    let mut rng = thread_rng();
+    let inner: BigInt = RandomBits::new(bytes * 8).sample(&mut rng);
+    inner.to_bytes_be().1
 }

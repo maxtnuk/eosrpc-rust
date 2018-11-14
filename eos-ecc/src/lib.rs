@@ -1,7 +1,6 @@
 extern crate ring;
 extern crate crypto;
 extern crate rust_base58;
-extern crate exonum_sodiumoxide;
 extern crate chrono;
 extern crate nalgebra as na;
 extern crate regex;

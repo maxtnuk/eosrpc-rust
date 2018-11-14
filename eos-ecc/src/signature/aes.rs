@@ -3,15 +3,14 @@ use key::{PrivateKey, PublicKey};
 use crypto::aes::{KeySize, cbc_decryptor, cbc_encryptor};
 use crypto::blockmodes::NoPadding;
 use crypto::buffer::{RefReadBuffer, RefWriteBuffer};
-use exonum_sodiumoxide::randombytes as rb;
 use byteorder::{ByteOrder, WriteBytesExt, LittleEndian};
-
+use key::primtool::random_bytes;
 use prelude::*;
 use std::sync::Mutex;
 
 lazy_static!{
     static ref unique_nonce_entropy:i64 = {
-        let b=rb::randombytes(2);
+        let b=random_bytes(2);
         ((b[0] as u16) << 8 | b[1] as u16) as i64
     };
     static ref count:Mutex<i64>= Mutex::new(0);

@@ -30,6 +30,7 @@ pub use rpc_interface::*;
 use eos_type::*;
 pub use provider::*;
 pub use provider::Pfunc;
+pub use serde_json::to_string_pretty as json_pretty;
 
 use serde_json::Value;
 use chrono::prelude::*;

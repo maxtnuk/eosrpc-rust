@@ -1,6 +1,6 @@
 extern crate eos;
 use eos::{Eos, EosConfig, ApiConfig};
-use eos::{InfoProvider, Pfunc};
+use eos::{InfoProvider, Pfunc, json_pretty};
 fn main() {
     unimplemented!()
 }
@@ -15,10 +15,10 @@ fn eos_test() {
     };
     let test = Eos::new(test_config);
     let result = InfoProvider {}.get_it(&test.network);
-    println!("{:?}", result);
+    println!("{}", json_pretty(&result).unwrap());
     //println!("{}",result);
     let trx = test.create_transaction(None);
-    println!("{:?}", trx);
+    println!("{}", json_pretty(&trx).unwrap());
     /*
     test.transaction(Some(trx),|x|{
         println!("{}",x);

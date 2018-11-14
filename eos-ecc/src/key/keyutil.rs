@@ -1,12 +1,15 @@
-use exonum_sodiumoxide::randombytes as rb;
+use key::primtool::random_bytes;
 use chrono::prelude::*;
 use std::sync::Mutex;
 use na::Real;
 use rust_base58::base58::{ToBase58, FromBase58};
 use prelude::*;
 
+
 lazy_static!{
-    static ref externalEntropyArray: Mutex<Vec<u8>> = Mutex::new(rb::randombytes(101));
+    static ref externalEntropyArray: Mutex<Vec<u8>> = Mutex::new({
+        random_bytes(101)
+    });
     static ref entropyPos: Mutex<u32> = Mutex::new(0);
     static ref entropyCount: Mutex<u32> = Mutex::new(0);
 }
@@ -15,7 +18,7 @@ pub fn random32_byte_buffer<'a>(cpu_entropy_bits: u32, safe: bool) -> Data<'a> {
 
     if safe {}
     let mut hash_array: Vec<u8> = Vec::new();
-    hash_array.extend(rb::randombytes(32));
+    hash_array.extend(random_bytes(32));
     hash_array.extend(cpu_entropy(cpu_entropy_bits).to_vec());
     hash_array.extend(externalEntropyArray.lock().unwrap().clone());
     hash_array.extend(browser_entropy().to_vec());
@@ -83,7 +86,7 @@ fn add_entropy(ints: Vec<u128>) {
     }
 }
 fn browser_entropy<'a>() -> Data<'a> {
-    let mut entropy_str = rb::randombytes(101);
+    let mut entropy_str = random_bytes(101);
     let cur_time = Utc::now().to_rfc2822();
     let time_data = hash::sha256(Data::from(cur_time.clone()));
     entropy_str.extend_from_slice(time_data.as_ref());

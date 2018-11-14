@@ -1,5 +1,5 @@
 [package]
-name = "eosrpc-rust"
+name = "eosrpc_rust"
 version = "0.1.0"
 authors = ["maxtnt <ttg1256@naver.com>"]
 
@@ -8,7 +8,8 @@ members = [
     "eos-api",
     "eos-ecc",
     "eos",
-    "eos-type"
+    "eos-type",
+    "examples/test_eos"
 ]
 
 [dependencies]
