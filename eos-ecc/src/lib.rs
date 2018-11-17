@@ -1,5 +1,5 @@
 extern crate ring;
-extern crate crypto;
+extern crate ripemd160;
 extern crate rust_base58;
 extern crate chrono;
 extern crate nalgebra as na;

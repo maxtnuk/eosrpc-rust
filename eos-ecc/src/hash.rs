@@ -25,14 +25,11 @@ pub fn sha512<'a>(data: Data<'a>) -> Data<'a> {
     Data::new(out.as_ref().to_vec())
 }
 pub fn ripemd160<'a>(data: Data<'a>) -> Data<'a> {
-    use crypto::ripemd160::Ripemd160;
-    use crypto::digest::Digest;
+    use ripemd160::{Ripemd160, Digest};
 
     let mut hasher = Ripemd160::new();
     hasher.input(data.as_ref());
-    let mut result: Cow<'a, [u8]> = Cow::Borrowed(&[0u8; 32]);
-    hasher.result(&mut result.to_mut());
-    Data::new(result)
+    Data::new(hasher.result()[..].to_vec())
 }
 pub fn hmac_sha256<'a>(buffer: Data<'a>, key: Data<'a>) -> Data<'a> {
     let key = hmac::SigningKey::new(&digest::SHA256, key.as_ref());
