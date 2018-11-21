@@ -6,7 +6,7 @@ authors = ["maxtnuk <maxtnuk@gmail.com>"]
 [dependencies]
 eos_api = { path = "../eos-api" ,version = "0.1.0"}
 eos_type = { path = "../eos-type" ,version = "0.1.0"}
-ecc = { path = "../eos-ecc" }
+crypto = { path = "../eos-crypto" ,version = "0.1.0"}
 serde = "1.0.78"
 serde_derive = "1.0.78"
 serde_json = "1.0.27"

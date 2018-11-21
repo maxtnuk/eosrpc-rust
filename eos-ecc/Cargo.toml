@@ -22,5 +22,6 @@ nalgebra = "0.16.4"
 rust-base58 = "0.0.4"
 lazy_static = "1.1.0"
 enum-map = "0.4.1"
+secp256k1 = "0.11.5"
 rayon = "1.0.2"
 chrono = { version = "0.4", features = ["serde"] }

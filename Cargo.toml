@@ -6,14 +6,17 @@ authors = ["maxtnt <ttg1256@naver.com>"]
 [workspace]
 members = [
     "eos-api",
-    "eos-ecc",
     "eos",
     "eos-type",
-    "examples/test_eos"
+    "examples/test_eos",
+    "eos-crypto",
+    "eos-ecc"
 ]
+exclude = ["ecc"]
 
 [dependencies]
 eos_api = { path = "eos-api" ,version = "0.1.0"}
 ecc = { path = "eos-ecc" ,version = "0.1.0"}
 eos = { path = "eos" ,version = "0.1.0"}
 eos_type = { path = "eos-type" ,version = "0.1.0"}
+crypto = { path = "eos-crypto" ,version = "0.1.0"}

@@ -1,6 +1,6 @@
 extern crate eos_api;
 extern crate eos_type;
-extern crate ecc;
+extern crate crypto;
 extern crate regex;
 extern crate num;
 extern crate num_bigint;
@@ -146,7 +146,16 @@ impl<'a> Eos<'a> {
             abis: Vec::new(),
         }.gen_sigs();
 
-        let sig_strings: Vec<String> = sigs.iter().map(|x| x.to_string()).collect();
+        let sig_strings: Vec<String> = sigs.iter().map(|x| {
+            match x {
+                Ok(e) =>{
+                    e.to_string()    
+                },
+                Err(_) =>{
+                    "".to_string()
+                }
+            }
+        }).collect();
 
         let packed_trx = PushTransactionProvider {
             compression: "none".to_string(),

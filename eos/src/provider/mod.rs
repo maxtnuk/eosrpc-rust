@@ -1,6 +1,6 @@
 use eos_api::EosApi;
-use ecc::signature::Signature;
-use ecc::key::PrivateKey;
+use crypto::signature::{Signature,ResultSignature};
+use crypto::key::PrivateKey;
 use rpc_interface::*;
 use bincode::serialize;
 use serde::de::Deserialize;
@@ -89,8 +89,8 @@ pub struct SignProvider {
     pub abis: Vec<ABI>,
 }
 impl SignProvider {
-    pub fn gen_sigs(&self) -> Vec<Signature> {
-        use ecc::to_bytes;
+    pub fn gen_sigs(&self) -> Vec<ResultSignature> {
+        use crypto::to_bytes;
         let mut buf = to_bytes(self.chain_id.to_string());
         let serialtrx = serialize(&self.transaction).unwrap();
         buf.extend(serialtrx);
