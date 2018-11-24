@@ -1,4 +1,30 @@
-use super::Auth;
+use serde_json::Value;
+use serde:;de::Deserialize;
+use EosApi;
+
+pub mod basic;
+pub mod abi;
+pub mod chain;
+pub mod dbsize;
+pub mod history;
+pub mod net;
+pub mod producer;
+
+use basic::*;
+
+pub trait Pfunc<'a, T>
+where
+    T: Deserialize<'a>,
+{
+    fn response(&self, &EosApi<'a>) -> T;
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct Auth {
+    actor: String,
+    permission: String,
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TActions {
     account: String,

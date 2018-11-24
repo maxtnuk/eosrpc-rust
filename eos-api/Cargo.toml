@@ -7,4 +7,5 @@ authors = ["maxtnuk <maxtnuk@gmail.com>"]
 serde = "1.0.78"
 serde_derive = "1.0.78"
 serde_json = "1.0.27"
+lazy_static = "1.2.0"
 reqwest = "0.9.4"

@@ -1,4 +1,4 @@
-use format;
+use eosformat;
 /*
 !!!!!todo
 Name o
@@ -13,7 +13,7 @@ struct Name {
 impl Name {
     fn origin_name(&self) -> String {
         let u64_str = format!("{}", &self.nameu64);
-        format::decode_name(u64_str, false)
+        eosformat::decode_name(u64_str, false)
     }
     fn de_name(&self) -> u64 {
         self.nameu64
@@ -21,7 +21,7 @@ impl Name {
 }
 impl From<String> for Name {
     fn from(name: String) -> Self {
-        let value = format::encode_name(name, false).unwrap();
+        let value = eosformat::encode_name(name, false).unwrap();
         Name { nameu64: value.as_str().parse().unwrap() }
     }
 }
@@ -66,7 +66,7 @@ impl Default for Symbol {
 }
 impl From<String> for Symbol {
     fn from(txt: String) -> Self {
-        let result = format::parse_asset(txt);
+        let result = eosformat::parse_asset(txt);
         Symbol {
             symbol_code: result.symbol.clone(),
             precision: result.precision.clone(),
@@ -89,7 +89,7 @@ impl ToString for ExtemdedSymbol {
 }
 impl From<String> for ExtemdedSymbol {
     fn from(txt: String) -> Self {
-        let result = format::parse_asset(txt);
+        let result = eosformat::parse_asset(txt);
         ExtemdedSymbol {
             symbol: Symbol {
                 symbol_code: result.symbol.clone(),
@@ -114,8 +114,8 @@ struct EosAsset {
 }
 impl From<String> for EosAsset {
     fn from(txt: String) -> Self {
-        let result = format::parse_asset(txt);
-        let amount = format::decimal_pad(result.amount.unwrap(), result.precision.clone());
+        let result = eosformat::parse_asset(txt);
+        let amount = eosformat::decimal_pad(result.amount.unwrap(), result.precision.clone());
         EosAsset {
             amount: Some(amount),
             symbol: Symbol {
@@ -130,7 +130,7 @@ impl ToString for EosAsset {
         let amount = self.amount.clone().unwrap();
         let precision = self.symbol.get_precision();
         let symbol = self.symbol.get_symbol();
-        let dec = format::decimal_pad(amount, precision);
+        let dec = eosformat::decimal_pad(amount, precision);
 
         format!("{} {}", dec, symbol)
     }
@@ -150,7 +150,7 @@ struct ExtemdedEosAsset {
 }
 impl From<String> for ExtemdedEosAsset {
     fn from(txt: String) -> Self {
-        let result = format::parse_asset(txt);
+        let result = eosformat::parse_asset(txt);
         ExtemdedEosAsset {
             asset: EosAsset {
                 amount: result.amount.clone(),

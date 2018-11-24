@@ -1,3 +1,4 @@
+#[macro_use]
 extern crate eos_api;
 extern crate eos_type;
 extern crate crypto;
@@ -15,8 +16,8 @@ extern crate serde_derive;
 
 pub mod format;
 pub mod prelude;
-pub mod provider;
-pub mod rpc_interface;
+pub mod sign;
+pub mod eosstruct;
 
 #[cfg(test)]
 mod test;
@@ -26,10 +27,8 @@ pub use rpc_interface::trs::Transaction;
 
 use eos_api::EosApi;
 
-pub use rpc_interface::*;
 use eos_type::*;
-pub use provider::*;
-pub use provider::Pfunc;
+use sign::SignProvider;
 pub use serde_json::to_string_pretty as json_pretty;
 
 use serde_json::Value;
@@ -80,7 +79,10 @@ impl<'a> Eos<'a> {
         }
     }
     pub fn abi_async(&self, account: &str) -> ABI {
-        let code = AbiProvider { account_name: account.to_string() }.get_it(&self.network);
+        let code = AbiProvider
+        { 
+            account_name: account.to_string() 
+        }.get_it(&self.network);
         code.abi.clone()
     }
     pub fn abi_value(file_name: &str) -> ABI {

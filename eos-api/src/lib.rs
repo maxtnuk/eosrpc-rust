@@ -9,13 +9,44 @@ use serde::ser::Serialize;
 use std::fs::{self, File};
 use std::collections::HashMap;
 use std::path::PathBuf;
+use serde::de::DeserializeOwned;
+use serde::se::Serialize;
 
 use reqwest::Error;
+pub mod form;
 
 #[cfg(test)]
 mod test;
 
-type Method = HashMap<String, Argu>;
+#[macro_export]
+macro_rules! eos_call {
+    ($e:expr, $($json:tt)+) => {{
+        let input=json!($($json)+);
+        let method=$e.to_string();
+        EosCall::new(method,input)
+    }}
+}
+pub struct EosCall<S>
+where S: Serialize{
+    method_name: String,
+    input: S
+}
+impl EosCall<S>{
+    pub fn new<S>(method_name: String,input: S) ->Self
+    where S: Serialize{
+        EosCall{
+            method_name: method_name,
+            input: S
+        }
+    }
+    fn get_it<T>(&self,api: &EosApi<'a>) -> T
+     where T: DeserializeOwned {
+         let result=api.http_request(self.method_name.as_str(), &self.input).unwrap();
+         serde_json::from_value(result).unwrap()
+    }
+}
+
+type Method = HashMap<String, Value>;
 
 #[derive(Clone)]
 pub struct ApiConfig<'a> {
@@ -44,7 +75,7 @@ struct Argu {
     #[serde(default)]
     brief: String,
     params: Value,
-    results: Value,
+    result: Value,
 }
 #[derive(Clone)]
 pub struct EosApi<'a> {
@@ -94,6 +125,7 @@ impl<'a> EosApi<'a> {
     {
         let httpurl = self.optional.http_endpoint;
         let mut url = String::new();
+        form::parse_input(name,body);
         for (k, v) in self.def.iter() {
             if v.get(&name.to_string()).is_some() {
                 url = format!("{}/{}/{}", httpurl, k, name);

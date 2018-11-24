@@ -1,5 +1,6 @@
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ABI {
+    #[serde(default)]
     pub version: String,
     pub types: Vec<Types>,
     #[serde(rename = "____comment")]
@@ -55,3 +56,4 @@ pub struct Types {
     #[serde(rename = "type")]
     _type: String,
 }
+
