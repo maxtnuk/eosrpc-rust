@@ -4,8 +4,6 @@ extern crate crypto;
 extern crate regex;
 extern crate num;
 extern crate num_bigint;
-extern crate serde;
-extern crate serde_json;
 extern crate bincode;
 
 pub mod eosformat;
@@ -17,7 +15,6 @@ pub mod prelude {
     pub use errorhandle::Errortype;
 }
 
-use serde_json::value::Value;  
 pub use eos_api::ApiConfig;
 pub use eos_api::json_pretty;
 
@@ -28,9 +25,7 @@ use form::all::*;
 use eos_type::*;
 use sign::SignProvider;
 
-
 use std::collections::HashMap;
-use std::fs::File;
 
 pub struct EosConfig<'a> {
     pub api_config: ApiConfig<'a>,
@@ -57,7 +52,7 @@ impl<'a> Eos<'a> {
 
         let network = EosApi::new(config.api_config.clone());
 
-        let mut abis = HashMap::new();
+        let abis = HashMap::new();
 
         Eos {
             network: network,
@@ -71,19 +66,6 @@ impl<'a> Eos<'a> {
             account_name: account.to_string() 
         }.response(&self.network);
         code.abi.clone()
-    }
-    pub fn abi_value(path: &str) -> ABI {
-        let file = File::open(path).unwrap();
-        serde_json::from_reader(file).unwrap()
-    }
-    pub fn abi_to_bin(&self, code: String, action: String, args: &Value) -> u64 {
-        let binresult = chain::request::AbiJsonToBin {
-            code: code,
-            action: action,
-            args: args.clone(),
-        }.response(&self.network);
-
-        binresult.binargs
     }
     pub fn push_transaction(&self, block: Option<Transaction>) {
         let api = &self.network;

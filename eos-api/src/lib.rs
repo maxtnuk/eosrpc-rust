@@ -145,4 +145,17 @@ impl<'a> EosApi<'a> {
             ..Default::default()
         }
     }
+    pub fn abi_value(path: &str) -> ABI {
+        let file = File::open(path).unwrap();
+        serde_json::from_reader(file).unwrap()
+    }
+    pub fn abi_to_bin(&self, code: String, action: String, args: &Value) -> u64 {
+        let binresult = chain::request::AbiJsonToBin {
+            code: code,
+            action: action,
+            args: args.clone(),
+        }.response(self);
+
+        binresult.binargs
+    }
 }
