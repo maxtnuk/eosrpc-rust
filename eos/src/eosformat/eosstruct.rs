@@ -1,12 +1,5 @@
 use eosformat;
-/*
-!!!!!todo
-Name o
-Symbol
-Symbolcode
-ExtemdedSymbol
-SignatureType
-*/
+
 struct Name {
     nameu64: u64,
 }

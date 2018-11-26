@@ -1,6 +1,6 @@
 #[test]
 fn format() {
-    use format::*;
+    use eosformat::*;
 
     let isname = vec!["isname111111", "a", "1", "5", "sam5", "sam", "adam.applejj"];
     let noname = vec!["isname111111j", "6", "a6", " "];

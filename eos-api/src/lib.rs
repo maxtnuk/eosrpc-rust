@@ -3,17 +3,26 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 extern crate reqwest;
+extern crate chrono;
 
+use chrono::prelude::*;
+use chrono::Duration;
 use serde_json::Value;
 use serde::ser::Serialize;
 use std::fs::{self, File};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use serde::de::DeserializeOwned;
-use serde::se::Serialize;
+use std::str;
+use std::borrow::Cow;
+pub use serde_json::to_string_pretty as json_pretty;
 
 use reqwest::Error;
 pub mod form;
+pub mod apis;
+
+use form::all::*;
+use apis::Apis;
 
 #[cfg(test)]
 mod test;
@@ -26,31 +35,32 @@ macro_rules! eos_call {
         EosCall::new(method,input)
     }}
 }
-pub struct EosCall<S>
+pub struct EosCall<'a,S>
 where S: Serialize{
-    method_name: String,
+    method_name: Cow<'a,str>,
     input: S
 }
-impl EosCall<S>{
-    pub fn new<S>(method_name: String,input: S) ->Self
-    where S: Serialize{
+impl<'a,S> EosCall<'a,S>
+where S: Serialize{
+    pub fn new<C>(method_name: C,input: S) ->Self
+    where S: Serialize,
+    C: Into<Cow<'a,str>>{
         EosCall{
-            method_name: method_name,
-            input: S
+            method_name: method_name.into(),
+            input: input
         }
     }
-    fn get_it<T>(&self,api: &EosApi<'a>) -> T
+    fn get_it<'b,T>(&self,api: &EosApi<'b>) -> T
      where T: DeserializeOwned {
-         let result=api.http_request(self.method_name.as_str(), &self.input).unwrap();
+         let result=api.http_request(&self.method_name, &self.input).unwrap();
          serde_json::from_value(result).unwrap()
     }
 }
 
-type Method = HashMap<String, Value>;
-
-#[derive(Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApiConfig<'a> {
     pub http_endpoint: &'a str,
+    pub port: &'a str,
     pub verbose: bool,
     pub debug: bool,
     pub broadcast: bool,
@@ -60,7 +70,8 @@ pub struct ApiConfig<'a> {
 impl<'a> Default for ApiConfig<'a> {
     fn default() -> Self {
         ApiConfig {
-            http_endpoint: "http://127.0.0.1:8888",
+            http_endpoint: "127.0.0.1",
+            port:"8888",
             verbose: false,
             debug: false,
             broadcast: true,
@@ -70,52 +81,16 @@ impl<'a> Default for ApiConfig<'a> {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct Argu {
-    #[serde(default)]
-    brief: String,
-    params: Value,
-    result: Value,
-}
 #[derive(Clone)]
 pub struct EosApi<'a> {
-    def: HashMap<String, Method>,
+    def: Apis<'a>,
     pub optional: ApiConfig<'a>,
 }
 impl<'a> EosApi<'a> {
     pub fn new(config: ApiConfig<'a>) -> Self {
-        let mut apis: HashMap<String, Method> = HashMap::new();
-
-        for entry in fs::read_dir("./eos-api/src/apis").unwrap() {
-            let entry = entry.unwrap();
-            let version_str = entry
-                .path()
-                .as_path()
-                .iter()
-                .skip(4)
-                .collect::<PathBuf>()
-                .to_string_lossy()
-                .into_owned();
-            for api_file in fs::read_dir(entry.path()).unwrap() {
-                let api_file = api_file.unwrap();
-                let file_name = api_file
-                    .path()
-                    .file_stem()
-                    .unwrap()
-                    .to_string_lossy()
-                    .into_owned();
-                let api_path = version_str.clone() + "/" + &file_name;
-
-                //println!("{}",api_path);
-
-                let file = File::open(api_file.path()).unwrap();
-                let u: Method = serde_json::from_reader(file).unwrap();
-                apis.insert(api_path, u);
-            }
-        }
-
+        
         EosApi {
-            def: apis,
+            def: Apis::new(),
             optional: config,
         }
     }
@@ -124,16 +99,35 @@ impl<'a> EosApi<'a> {
         S: Serialize,
     {
         let httpurl = self.optional.http_endpoint;
-        let mut url = String::new();
-        form::parse_input(name,body);
-        for (k, v) in self.def.iter() {
-            if v.get(&name.to_string()).is_some() {
-                url = format!("{}/{}/{}", httpurl, k, name);
-                break;
-            }
-        }
-        //println!("url: {}",url);
+        let port = self.optional.port;
+        let url=format!("http://{}:{}/{}",httpurl,port,&self.def.index(name));
+
+        println!("url: {}",url);
         let res = reqwest::Client::new().post(&url).json(body).send()?.json()?;
         Ok(res)
+    }
+    pub fn create_transaction(&self, expire_sec: Option<i64>) -> Transaction {
+        let api = self;
+        let get_info = chain::request::GetInfo {}.response(api);
+
+        let head_block_time = get_info.head_block_time;
+        let chain_date = DateTime::parse_from_rfc3339((head_block_time + "Z").as_str()).unwrap();
+
+        let irr_block = get_info.last_irreversible_block_num;
+
+        let block = chain::request::GetBlock { block_num_or_id: irr_block }.response(api);
+
+        let expiration = match expire_sec {
+            Some(e) => chain_date + Duration::seconds(e * 1000),
+            None => chain_date + Duration::seconds(60 * 1000),
+        };
+        let ref_block_num = irr_block & 0xFFFF;
+
+        Transaction {
+            expiration: expiration.to_rfc3339(),
+            ref_block_num: ref_block_num,
+            ref_block_prefix: block.ref_block_prefix,
+            ..Default::default()
+        }
     }
 }

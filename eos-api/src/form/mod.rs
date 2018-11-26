@@ -1,7 +1,8 @@
-use serde_json::Value;
-use serde:;de::Deserialize;
+use serde::de::Deserialize;
 use EosApi;
 
+#[allow(non_camel_case_types)]
+#[allow(dead_code)]
 pub mod basic;
 pub mod abi;
 pub mod chain;
@@ -10,7 +11,18 @@ pub mod history;
 pub mod net;
 pub mod producer;
 
-use basic::*;
+use self::basic::*;
+
+pub mod all{
+    pub use form::chain;
+    pub use form::dbsize;
+    pub use form::net;
+    pub use form::history;
+    pub use form::producer;
+    pub use super::abi::ABI;
+    pub use super::Transaction;
+    pub use super::Pfunc;
+}
 
 pub trait Pfunc<'a, T>
 where

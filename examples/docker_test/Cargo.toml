@@ -1,0 +1,9 @@
+[package]
+name = "docker_test"
+version = "0.1.0"
+authors = ["maxtnt <ttg1256@naver.com>"]
+
+[dependencies]
+eos = { path = "../../eos" ,version = "0.1.0"}
+serde = "1.0.80"
+serde_yaml = "0.8.7"

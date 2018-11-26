@@ -1,11 +1,13 @@
+use form::Transaction;
+use serde_json::Value;
+
 pub type account_name = String;
 pub type account = String;
-pub type accounts=Vec<string>;
+pub type accounts=Vec<String>;
 pub type block_num_or_id = String;
 pub type code = String;
 pub type symbol = String;
 pub type action = String;
-pub type args =  Value::Object(Map<String, Value>);
 pub type binargs=String;
 pub type available_keys = Vec<String>;
 pub type limit=String;

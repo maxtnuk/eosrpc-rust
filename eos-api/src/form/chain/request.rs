@@ -1,8 +1,9 @@
-use Prov;
-use EosCall;
+use {EosCall,EosApi};
+use serde_json::Value;
+use form::Transaction;
 use form::Pfunc;
 use form::basic::*;
-use super::request as re;
+use super::response as re;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetInfo;
@@ -115,6 +116,50 @@ pub struct GetRequiredKeys {
 impl<'a> Pfunc<'a, re::GetRequiredKeys> for GetRequiredKeys {
     fn response(&self, api: &EosApi<'a>) -> re::GetRequiredKeys {
         EosCall::new("get_required_keys",self.clone()).get_it(api)
+    }
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GetCurrencyStats {
+    pub code: String,
+    pub symbol: String,
+}
+//not defined
+impl<'a> Pfunc<'a,Value> for GetCurrencyStats {
+    fn response(&self, api: &EosApi<'a>) -> Value {
+        EosCall::new("get_currency_stats",self.clone()).get_it(api)
+    }
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct GetProducers {
+    pub limit: String,
+    pub lower_bound: String,
+    pub json: bool
+}
+//not defined
+impl<'a> Pfunc<'a, Value> for GetProducers {
+    fn response(&self, api: &EosApi<'a>) -> Value {
+        EosCall::new("get_producers",self.clone()).get_it(api)
+    }
+}
+#[derive(Serialize, Deserialize, Clone, Debug)]
+pub struct PushBlock {
+    pub timestamp: String,
+    pub producer: String,
+    pub confirmed: i32,
+    pub previous: String,
+    pub transaction_mroot: String,
+    pub action_mroot: i32,
+    pub version: String,
+    pub new_producers: Vec<String>,
+    pub header_extensions: Vec<String>,
+    pub producer_signature: String,
+    pub transactions: Vec<Transaction>,
+    pub block_extensions: Vec<String>,
+}
+//not defined
+impl<'a> Pfunc<'a, Value> for PushBlock {
+    fn response(&self, api: &EosApi<'a>) -> Value {
+        EosCall::new("push_transaction",self.clone()).get_it(api)
     }
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]

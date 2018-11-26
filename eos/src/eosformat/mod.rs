@@ -1,3 +1,5 @@
+pub mod eosstruct;
+
 use prelude::*;
 use std::iter;
 use num::ToPrimitive;

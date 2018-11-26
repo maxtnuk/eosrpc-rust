@@ -6,11 +6,18 @@ use serde_json::Value;
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetInfo {
     pub server_version: String,
+    pub chain_id: String,
     pub head_block_num: u64,
     pub last_irreversible_block_num: u64,
+    pub last_irreversible_block_id: String,
     pub head_block_id: String,
     pub head_block_time: String,
     pub head_block_producer: String,
+    pub virtual_block_cpu_limit: u64,
+    pub virtual_block_net_limit: u64,
+    pub block_cpu_limit: u64,
+    pub block_net_limit: u64,
+    pub server_version_string: String
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct GetRequiredKeys {
@@ -70,20 +77,20 @@ pub struct GetAccount {
 }
 
 #[derive(Serialize, Deserialize)]
-struct Keys {
+pub struct Keys {
   key: String,
   weight: i64,
 }
 
 #[derive(Serialize, Deserialize)]
-struct Permissions {
+pub struct Permissions {
   perm_name: String,
   parent: String,
   required_auth: RequiredAuth,
 }
 
 #[derive(Serialize, Deserialize)]
-struct RequiredAuth {
+pub struct RequiredAuth {
   threshold: i64,
   keys: Vec<Keys>,
   accounts: Vec<account>,
@@ -102,5 +109,7 @@ pub struct GetTableRows{
 }
 #[derive(Serialize, Deserialize)]
 pub struct AbiBinToJson{
-    
+    pub args: Value,
+    pub required_scope: Vec<Value>,
+    pub required_auth: Vec<RequiredAuth>
 }

@@ -16,7 +16,11 @@ pub mod hash;
 #[allow(non_snake_case)]
 #[allow(dead_code)]
 pub mod key;
-pub mod prelude;
+pub mod prelude{
+    pub use eos_type::*;
+    pub use std::borrow::Cow;
+    pub use hash;
+}
 #[allow(dead_code)]
 pub mod signature;
 #[cfg(test)]
