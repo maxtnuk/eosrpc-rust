@@ -1,5 +1,7 @@
 use serde::de::Deserialize;
+use serde::de::DeserializeOwned;
 use EosApi;
+use serde_json::Value;
 
 #[allow(non_camel_case_types)]
 #[allow(dead_code)]
@@ -10,18 +12,40 @@ pub mod dbsize;
 pub mod history;
 pub mod net;
 pub mod producer;
+pub mod error;
 
 use self::basic::*;
+use self::error::EosError;
 
 pub mod all{
-    pub use form::chain;
-    pub use form::dbsize;
-    pub use form::net;
-    pub use form::history;
-    pub use form::producer;
+    pub use super::chain;
+    pub use super::dbsize;
+    pub use super::net;
+    pub use super::history;
+    pub use super::producer;
     pub use super::abi::ABI;
     pub use super::Transaction;
     pub use super::Pfunc;
+    pub use super::EosResponse;
+}
+pub enum EosResponse<T>
+where T: DeserializeOwned{
+    Fine(T),
+    Error(EosError)
+}
+impl<T> EosResponse<T>
+where T: DeserializeOwned{
+    pub fn parse(raw: Value) ->Self{
+        match serde_json::from_value::<T>(raw.clone()){
+             Ok(e) =>{
+                 EosResponse::Fine(e)
+             }
+             Err(_)=>{
+                let eoserror: EosError = serde_json::from_value(raw).unwrap();
+                EosResponse::Error(eoserror)
+             }
+         }
+    }
 }
 
 pub trait Pfunc<'a, T>

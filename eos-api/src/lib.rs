@@ -1,4 +1,5 @@
 extern crate serde;
+#[macro_use]
 extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
@@ -53,7 +54,14 @@ where S: Serialize{
     fn get_it<'b,T>(&self,api: &EosApi<'b>) -> T
      where T: DeserializeOwned {
          let result=api.http_request(&self.method_name, &self.input).unwrap();
-         serde_json::from_value(result).unwrap()
+         match EosResponse::parse(result){
+             EosResponse::Fine(val) =>{
+                val
+             },
+             EosResponse::Error(err) =>{
+                panic!("{}",json_pretty(&err).unwrap());                 
+             }
+         }
     }
 }
 
@@ -91,7 +99,7 @@ impl<'a> EosApi<'a> {
         
         EosApi {
             def: Apis::new(),
-            optional: config,
+            optional: config
         }
     }
     pub fn http_request<S>(&self, name: &str, body: &S) -> Result<Value, Error>
@@ -103,7 +111,14 @@ impl<'a> EosApi<'a> {
         let url=format!("http://{}:{}/{}",httpurl,port,&self.def.index(name));
 
         println!("url: {}",url);
-        let res = reqwest::Client::new().post(&url).json(body).send()?.json()?;
+        let prepare=reqwest::Client::new().post(&url);
+        
+        let res = if serde_json::to_value(body).unwrap() == Value::Null{
+            prepare.json(&json!({}))
+        }else{
+            prepare.json(body)
+        }.send()?.json()?;
+        
         Ok(res)
     }
     pub fn create_transaction(&self, expire_sec: Option<i64>) -> Transaction {
