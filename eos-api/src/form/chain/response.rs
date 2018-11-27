@@ -25,7 +25,7 @@ pub struct GetRequiredKeys {
 }
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct AbiJsonToBin {
-    pub binargs: u64,
+    pub binargs: String,
     pub required_scope: Vec<String>,
     pub required_auth: Vec<Auth>,
 }

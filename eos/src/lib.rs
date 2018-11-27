@@ -5,6 +5,7 @@ extern crate regex;
 extern crate num;
 extern crate num_bigint;
 extern crate bincode;
+extern crate chrono;
 
 pub mod eosformat;
 pub mod sign;
@@ -15,6 +16,8 @@ pub mod prelude {
     pub use errorhandle::Errortype;
 }
 
+use chrono::prelude::*;
+use chrono::Duration;
 pub use eos_api::ApiConfig;
 pub use eos_api::json_pretty;
 
@@ -67,12 +70,51 @@ impl<'a> Eos<'a> {
         }.response(&self.network);
         code.abi.clone()
     }
-    pub fn push_transaction(&self, block: Option<Transaction>) {
+    pub fn config_transaction(&self,trx: &mut Transaction,
+                                    abireq: &chain::request::AbiJsonToBin,
+                                    account: String,
+                                    auths: Vec<Auth>){
+        let api=&self.network;
+        let reabi=abireq.response(api);
+        
+        let taction=TActions{
+            account: account,
+            name: abireq.action.clone(),
+            authorization:auths,
+            data: reabi.binargs
+        };
+        trx.actions=vec![taction];
+    }
+    pub fn create_transaction(&self, expire_sec: Option<i64>) -> Transaction {
+        let api = &self.network;
+        let get_info = chain::request::GetInfo {}.response(api);
+
+        let head_block_time = get_info.head_block_time;
+        let chain_date = DateTime::parse_from_rfc3339((head_block_time + "Z").as_str()).unwrap();
+
+        let irr_block = get_info.last_irreversible_block_num;
+
+        let block = chain::request::GetBlock { block_num_or_id: irr_block }.response(api);
+
+        let expiration = match expire_sec {
+            Some(e) => chain_date + Duration::seconds(e * 1000),
+            None => chain_date + Duration::seconds(60 * 1000),
+        };
+        let ref_block_num = irr_block & 0xFFFF;
+
+        Transaction {
+            expiration: expiration.to_rfc3339(),
+            ref_block_num: ref_block_num,
+            ref_block_prefix: block.ref_block_prefix,
+            ..Default::default()
+        }
+    }
+    pub fn push_transaction(&self, block: Option<Transaction>) ->String{
         let api = &self.network;
         let option = self.config.api_config.clone();
         let ref_block = block.unwrap_or({
             self.config.header.clone().unwrap_or({
-                api.create_transaction(None)
+                self.create_transaction(None)
             })
         });
 
@@ -105,5 +147,6 @@ impl<'a> Eos<'a> {
             context_free_data: "".to_string(),
             signatures: sig_strings,
         }.response(api);
+        json_pretty(&packed_trx).unwrap()
     }
 }

@@ -18,12 +18,18 @@ fn main() {
         ..Default::default()
     };
     let test = Eos::new(test_config);
-    let result = chain::request::GetInfo {}.response(&test.network);
-    println!("{}", json_pretty(&result).unwrap());
-    //println!("{}",result);
-    let trx = test.push_transaction(None);
+    let trx = chain::request::GetInfo {}.response(&test.network);
     println!("{}", json_pretty(&trx).unwrap());
+    //println!("{}",result);
+    let mut trx=test.create_transaction(None);
     /*
+    let auth =Auth{
+        actor: "eosio".to_string(),
+        permission: "active".to_string()
+    };
+    test.config_transaction(&mut trx,&req,"eosio".to_string(),vec![auth]);
+    let result = test.push_transaction(Some(trx));
+    println!("{}", result);
     test.transaction(Some(trx),|x|{
         println!("{}",x);
     });

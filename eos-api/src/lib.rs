@@ -4,10 +4,7 @@ extern crate serde_json;
 #[macro_use]
 extern crate serde_derive;
 extern crate reqwest;
-extern crate chrono;
 
-use chrono::prelude::*;
-use chrono::Duration;
 use serde_json::Value;
 use serde::ser::Serialize;
 use std::fs::{self, File};
@@ -28,14 +25,6 @@ use apis::Apis;
 #[cfg(test)]
 mod test;
 
-#[macro_export]
-macro_rules! eos_call {
-    ($e:expr, $($json:tt)+) => {{
-        let input=json!($($json)+);
-        let method=$e.to_string();
-        EosCall::new(method,input)
-    }}
-}
 pub struct EosCall<'a,S>
 where S: Serialize{
     method_name: Cow<'a,str>,
@@ -121,35 +110,11 @@ impl<'a> EosApi<'a> {
         
         Ok(res)
     }
-    pub fn create_transaction(&self, expire_sec: Option<i64>) -> Transaction {
-        let api = self;
-        let get_info = chain::request::GetInfo {}.response(api);
-
-        let head_block_time = get_info.head_block_time;
-        let chain_date = DateTime::parse_from_rfc3339((head_block_time + "Z").as_str()).unwrap();
-
-        let irr_block = get_info.last_irreversible_block_num;
-
-        let block = chain::request::GetBlock { block_num_or_id: irr_block }.response(api);
-
-        let expiration = match expire_sec {
-            Some(e) => chain_date + Duration::seconds(e * 1000),
-            None => chain_date + Duration::seconds(60 * 1000),
-        };
-        let ref_block_num = irr_block & 0xFFFF;
-
-        Transaction {
-            expiration: expiration.to_rfc3339(),
-            ref_block_num: ref_block_num,
-            ref_block_prefix: block.ref_block_prefix,
-            ..Default::default()
-        }
-    }
     pub fn abi_value(path: &str) -> ABI {
         let file = File::open(path).unwrap();
         serde_json::from_reader(file).unwrap()
     }
-    pub fn abi_to_bin(&self, code: String, action: String, args: &Value) -> u64 {
+    pub fn abi_to_bin(&self, code: String, action: String, args: &Value) -> String {
         let binresult = chain::request::AbiJsonToBin {
             code: code,
             action: action,

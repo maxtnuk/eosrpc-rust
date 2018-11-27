@@ -27,6 +27,8 @@ pub mod all{
     pub use super::Transaction;
     pub use super::Pfunc;
     pub use super::EosResponse;
+    pub use super::Auth;
+    pub use super::TActions;
 }
 pub enum EosResponse<T>
 where T: DeserializeOwned{
@@ -57,16 +59,16 @@ where
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Auth {
-    actor: String,
-    permission: String,
+    pub actor: String,
+    pub permission: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct TActions {
-    account: String,
-    name: String,
-    authorization: Vec<Auth>,
-    data: String,
+    pub account: String,
+    pub name: String,
+    pub authorization: Vec<Auth>,
+    pub data: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]

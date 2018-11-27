@@ -277,6 +277,7 @@ name = "eos"
 version = "0.1.0"
 dependencies = [
  "bincode 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "crypto 0.1.0",
  "eos_api 0.1.0",
  "eos_type 0.1.0",
@@ -289,7 +290,6 @@ dependencies = [
 name = "eos_api"
 version = "0.1.0"
 dependencies = [
- "chrono 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.2.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "reqwest 0.9.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde 1.0.80 (registry+https://github.com/rust-lang/crates.io-index)",
